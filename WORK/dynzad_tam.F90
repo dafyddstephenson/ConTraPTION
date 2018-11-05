@@ -1,1 +1,1 @@
-/home/ds4g15/NEMO/dev_v3_4_STABLE_2012/NEMOGCM/NEMO/OPATAM_SRC/DYN/dynzad_tam.F90
+../../../NEMO/OPATAM_SRC/DYN/dynzad_tam.F90

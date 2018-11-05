@@ -1,1 +1,1 @@
-/home/ds4g15/NEMO/dev_v3_4_STABLE_2012/NEMOGCM/NEMO/OPA_SRC/DYN/dynadv_ubs.F90
+../../../NEMO/OPA_SRC/DYN/dynadv_ubs.F90

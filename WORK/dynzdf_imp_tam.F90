@@ -1,1 +1,1 @@
-/home/ds4g15/NEMO/dev_v3_4_STABLE_2012/NEMOGCM/CONFIG/TL_PASSIVE2/MY_SRC/dynzdf_imp_tam.F90
+../../../NEMO/OPATAM_SRC/DYN/dynzdf_imp_tam.F90
