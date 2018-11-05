@@ -1,1 +1,0 @@
-../../../NEMO/OPATAM_SRC/stpctl_tam.F90
