@@ -1,0 +1,74 @@
+
+         ! Initialisation as in test subroutine of OPATAM_SRC/step.F90
+         CALL     oce_tam_init(1)
+         CALL sbc_oce_tam_init(1)
+         CALL sol_oce_tam_init(1)
+#if defined key_tradmp
+         CALL trc_oce_tam_init(1)
+         strdmp_tl = 0.0_wp
+         ttrdmp_tl = 0.0_wp
+#endif
+         qrp_tl = 0.0_wp
+         erp_tl = 0.0_wp   
+         emp_tl(:,:) = 0.0_wp
+         a_fwb_tl = 0.0_wp
+         
+         ! Variable allocation and initialisation
+         CALL wrk_alloc(jpi,jpj,jpk,ztn_tlin)
+         ztn_tlin(:,:,:) = 0.0_wp
+         
+         ! Reading in of initial perturbation
+         ! 2016-05-16 added variable for name of initial tracer distribution
+         CALL iom_open(cn_tl_passive_init,ncid,kiolib = jpnf90)
+         CALL iom_get(ncid,jpdom_autoglo,"Tinit",ztn_tlin,0)
+
+#if defined key_mpp_mpi
+         CALL lbc_lnk(ztn_tlin(:,:,:), 'T', 1.0_wp)
+#endif
+
+	 ! 2016-06-21 added global mask used to select region
+	 tmsk_region(:,:,:) = ztn_tlin(:,:,:)
+
+         ! Initialisation of TL model
+         istp = nit000 - 1
+         CALL trj_rea( istp, 1)
+         istp = nit000
+
+         CALL day_tam(nit000, 0)
+         un_tl(:,:,:) = 0.0_wp
+         vn_tl(:,:,:) = 0.0_wp
+         sshn_tl(:,:) = 0.0_wp
+         ! 2016-06-09 added switch and frequency for on-line resetting of NASMW
+         IF (ln_tl_nasmw_auto) THEN
+            WHERE ((tsn(:,:,:,jp_tem) >= 17.0_wp).AND.(tsn(:,:,:,jp_tem) <= 19.0_wp))
+	       tsn_tl(:,:,:,jp_tem) = ztn_tlin(:,:,:)
+               tsn_tl(:,:,:,jp_sal) = ztn_tlin(:,:,:)
+            END WHERE
+         ELSEIF (ln_edw_auto) THEN
+            tsn_tl(:,:,:,jp_tem) = tmsk_region(:,:,:)*tmsk_nasmw(:,:,:)
+            tsn_tl(:,:,:,jp_sal) = tmsk_region(:,:,:)*tmsk_nasmw(:,:,:)
+         ELSE
+            tsn_tl(:,:,:,jp_tem) = ztn_tlin(:,:,:)
+            tsn_tl(:,:,:,jp_sal) = ztn_tlin(:,:,:)
+         END IF
+         CALL iom_close(ncid)
+
+         CALL istate_init_tan
+
+         ! Time step loop
+         DO istp = nit000, nitend, 1
+            CALL stp_tan( istp )
+         END DO
+
+         ! Variable deallocation
+         CALL wrk_dealloc(jpi, jpj, jpk, ztn_tlin)
+
+         IF (lwp) THEN
+            WRITE(numout,*)
+            WRITE(numout,*) ' TL_PASSIVE: Finished!'
+            WRITE(numout,*) ' ---------------------'
+            WRITE(numout,*)
+         ENDIF
+         CALL flush(numout)
+
+      ! 2016-06-20: added adjoint time stepping loop

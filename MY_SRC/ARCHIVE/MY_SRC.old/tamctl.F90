@@ -1,0 +1,82 @@
+MODULE tamctl
+   !!======================================================================
+   !!                       ***  MODULE tamctl ***
+   !! NEMOTAMR : variables controlling the run.
+   !!======================================================================
+
+   !!----------------------------------------------------------------------
+   !! History :
+   !!        !  ...    ( ... )        Original code: varctl.F90
+   !!        !  09-06  (F. Vigilant)  Created to split NEMOVAR / NEMOTAM
+   !!---------------------------------------------------------------------
+
+   !!----------------------------------------------------------------------
+   !!----------------------------------------------------------------------
+   !! * Modules used
+   USE par_kind
+
+   !! * Routine accessibility
+
+   IMPLICIT NONE
+
+   PUBLIC
+
+   !! * Module variables
+
+
+   !! namtst:  assimilation test parameters
+
+   INTEGER   :: &
+      & ln_swi_opatam      ! Switch for NEMOTAM adjoint tests
+                           ! = 0 => Routine by routine adjoint test
+                           ! = 1 => Step test
+                           ! = 2 => Run TL model
+
+   ! 2016-03-03 added switch for passive tracer transport
+   LOGICAL :: ln_tl_passive_tracer
+   ! 2016-05-16 added variable for name of initial tracer distribution
+   CHARACTER(len=64) :: cn_tl_passive_init
+   ! 2016-05-16 added switch for including EIV transport in trajectory
+   LOGICAL :: ln_tl_eiv
+   ! 2016-05-24 added optional trajectory-upstream advection scheme
+   REAL(wp) :: rn_tl_adv_ups
+   ! 2016-06-09 added switch and frequency for on-line resetting of NASMW
+   ! 2016-06-22 added switch for removal and separate storage of surface tracer
+   ! 2016-08-22 added switch to automatically seed EDW for purposes of production measurement
+   LOGICAL :: ln_tl_nasmw_auto
+   LOGICAL :: ln_edw_auto
+   INTEGER :: nn_tl_nasmw_freq
+   LOGICAL :: ln_tl_surf_remove
+   LOGICAL   :: &
+      & ln_tst_tlh        ! Switch for tangent linear hypothesis testing
+
+   LOGICAL   :: &         ! TLH and tan testing settings
+      & ln_tlhts,       & ! Switch for perturbing T and S
+      & ln_tlhuv,       & ! Switch for perturbing U and V
+      & ln_incdx,       & ! Switch for using an increment file for the perturbation
+                          ! (rather than the difference between 2 restarts
+      & ln_hnorm,       & ! Switch for normalizing the perturbation
+      & ln_tlhssh         ! Switch for perturbing SSH
+
+   INTEGER   :: &
+      & nn_stage          ! Current stage of the test (deprecated ?)
+
+   REAL(wp)  :: &
+      & rn_hstdt,         & ! Upper bound of norm. for T
+      & rn_hstds,         & ! Upper bound of norm. for S
+      & rn_hstduv,        & ! Upper bound of norm. for U and V
+      & rn_hstdssh          ! Upper bound of norm. for SSH
+
+   CHARACTER(len=32) :: &
+      & cn_tlhinc_in,     & ! Name the perturbation file
+      & cn_tlhrst_in,     & ! Suffix of the perturbed restart file (input)
+      & cn_tlhrst_out,    & ! Suffix of the perturbed restart file (output)
+      & cn_tlhtrj_out       ! Suffix of the perturbed trajectory file (output)
+
+   !! Units for tangent test
+
+   INTEGER :: &
+      & numtan, &       ! Output for tangent diagnostics
+      & numtan_sc  	!Output for tangent diagnostics (scalar sampling)
+
+END MODULE tamctl

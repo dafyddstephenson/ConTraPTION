@@ -1,0 +1,27 @@
+-*- markdown -*-
+
+# 2017-02-10
+
+- moved time-stepping to separate module (pt_tam.F90)
+- retraced ln_edw_auto (step_tam), tmsk_nasmw (trj_tam), ln_tl_nasmw_auto (step_tam) - re-injects tracer into surface layer at specified frequency (default once only), tmp_rm in adjoint mode is set (sbcmod_tam, output in trj_tam) > to do: created module, modify to generalise water mass handling [take T,S properties and generate mask]
+
+# 2017-02-21
+
+oce_tam.F90[MY_SRC.new]                    : part Arthur's mods[copied], part our mods
+step_tam.F90[MY_SRC.new]                   : adjoint trajectory output, to be added to pt_tam
+tamtrj.F90[MY_SRC.new]                     : later
+sbcmod_tam.F90[MY_SRC.new]                 : to be added to ?module?
+trazdf_imp_tam.F90_NO_DIFFUSION[MY_SRC.new]: inactivew
+traadv_cen2_tam.F90.2scheme[MY_SRC.new]    : inactivew
+traadv_cen2_tam.F90.BACKUP[MY_SRC.new]     : inactivew
+traadv_cen2_tam.F90.trajectory-upstream_advection.inactive[MY_SRC.new]: inactivew
+traadv_cen2_tam.F90[MY_SRC.new]            : later
+traadv_tam.F90w[MY_SRC.new]                : later[enable TVD, EIV in trajectory, etc.]
+traadv.F90[MY_SRC.new]                     : later[enable TVD for passive tracer?]
+pt_tam.F90[MY_SRC.new]                     : later[newly developed module]
+tamctl.F90[MY_SRC.new]                     : later[namelist control for PT, to be moved to module]
+tamtst.F90[MY_SRC.new]                     : later[namelist control for PT, to be moved to module]
+trj_tam.F90[MY_SRC.new]                    : later[use reference version for now, fixes bug]
+nemogcm_tam.F90[MY_SRC.new]                : later
+
+

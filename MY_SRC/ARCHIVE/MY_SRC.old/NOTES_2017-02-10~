@@ -1,0 +1,3 @@
+
+- moved time-stepping to separate module (pt_tam.F90)
+- retraced ln_edw_auto (step_tam), tmsk_nasmw (trj_tam), ln_tl_nasmw_auto (step_tam) - re-injects tracer into surface layer at specified frequency (default once only), tmp_rm in adjoint mode is set (sbcmod_tam)

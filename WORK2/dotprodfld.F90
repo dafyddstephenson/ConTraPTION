@@ -1,0 +1,1 @@
+../../../NEMO/OPATAM_SRC/dotprodfld.F90

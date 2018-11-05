@@ -1,0 +1,11 @@
+COREII forcing files for ORCA2 were not included due to file size. Specifically:
+#####################################
+runoff_core_monthly.nc
+ncar_rad.15JUNE2009_orca2.nc
+q_10.15JUNE2009_orca2.nc
+t_10.15JUNE2009_orca2.nc
+u_10.15JUNE2009_orca2.nc
+v_10.15JUNE2009_orca2.nc
+ncar_precip.15JUNE2009_orca2.nc
+#####################################
+These can be found at http://data1.gfdl.noaa.gov/nomads/forms/mom4/COREv2/CNYF_v2.html

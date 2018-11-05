@@ -1,0 +1,1 @@
+../../../NEMO/OPATAM_SRC/DYN/divcur_tam.F90

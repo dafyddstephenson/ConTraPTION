@@ -1,0 +1,196 @@
+# README
+###################################################################
+# Author : Simona Flavoni for NEMO
+# Contact : sflod@locean-ipsl.upmc.fr
+# 
+# description of input files for ORCA2_LIM reference configuration, nemo version 3.4
+# for more specifics files see reference manual : http://www.nemo-ocean.eu/About-NEMO/Reference-manuals
+###################################################################
+
+###################################################################
+README_HISTORY
+This tar file contains all files needed for nemo_v3_4
+forcing files COREII, normal year, interpolated on ORCA2 grid
+downloaded from : http://data1.gfdl.noaa.gov/nomads/forms/mom4/COREv2/CNYF_v2.html
+file version 15JUNE2009
+
+files for AGRIF
+        1_weight* : corresponding to weight for online interpolation of surface fluxes 
+                    from the mother grid
+                  ( 1_weights_bicub.nc : for bicubic interpolation for ORCA2 grid from core2 surface field's grid) 
+                  ( 1_weights_bilin.nc : for bilinear    "    "      "    "     "    "    "    "   "   "   )
+                  ( 1_weights_core2_agrif_bicubic.nc  : for bicubic interpolation for child grid from core2 forcing field's grid)
+                  ( 1_weights_core2_agrif_bilinear.nc : for bilinear    "    "      "    "     "    "    "    "   "   "    "   " )
+        1_dat*    :  3d LEvitus initialisation file
+        1_bath_ymeter.nc : child grid bathymetry
+        1_coordinates.nc : child grid coordinate
+        1_K1rowdrg.nc    : Tidal energy for K1 tides (Sun) (mW/m2)
+        1_M2rowdrg.nc    : Tidal energy for M2 tides (Moon) (mW/m2)
+        1_data_1m_potential_temperature_nomask.nc : Levitus climatological potential temperature
+        1_data_1m_salinity_nomask.nc              : Levitus climatological salinity
+        1_geothermal_heating.nc : constant geothermal heat flux (mW/m2)
+        AGRIF_FixedGrids.in : text file to specify the number and location of sub grids
+                              this one correspond to an Agulhas zoom and has to be coherend 
+                              with all 1_* files
+##########################################################################################################################
+STRUCTURE OF THIS README FILE:
+1: Filename
+2: Variable for filename in namelist (if present)
+3: Description
+##########################################################################################################################
+
+Input files used in NEMO (mandatory)
+   _______________________________________
+   1: ahmcoef
+   3: 2D integer used to increase the horizontal eddy viscosity along western boundary in the equatorial strip 20°S-20°N (ascii)
+   ----------------------------------------------------------------------------------------------------------------------------
+   1: bathy_meter.nc 
+   3: the bathymetry in meters (Partial-cells)
+   ----------------------------------------------------------------------------------------------------------------------------
+   1: bathy_level.nc
+   3: the bathymetry in levels (Z-coordinates)
+   ----------------------------------------------------------------------------------------------------------------------------
+   1: coordinates.nc
+   3: scale factors e[123][tuvwf] and geographical glam[tuvwf] and gphi[tuvwf] location of each grid points T- U- V- W- and F-
+   ----------------------------------------------------------------------------------------------------------------------------
+   1: data_1m_potential_temperature_nomask.nc
+   3: Levitus climatological potential temperature
+   ----------------------------------------------------------------------------------------------------------------------------
+   1: data_1m_salinity_nomask.nc
+   3: Levitus climatological salinity
+   ----------------------------------------------------------------------------------------------------------------------------
+   1: geothermal_heating.nc
+   3: constant geothermal heat flux (mW/m2)
+   ---------------------------------------
+
+##########################################################################################################################
+Input files used in realistic forcing mode 
+(Here in namelist ln_blk_core=.true.)
+
+   1: u_10.15JUNE2009_orca2.nc
+   2: sn_wndi
+   3: zonal wind stress at 10m (interpolated orca2)
+   ----------------------------------------------------------------------------------------------------------------------------
+   1: v_10.15JUNE2009_orca2.nc
+   2: sn_wndj
+   3: meridional wind stress at 10m (interpolated orca2)
+   ----------------------------------------------------------------------------------------------------------------------------
+   1: ncar_rad.15JUNE2009_orca2.nc
+   2: sn_qrs, sn_qlw
+   3: radiation (short & logn waves) (interpolated orca2)
+   ----------------------------------------------------------------------------------------------------------------------------
+   1: t_10.15JUNE2009_orca2.nc
+   2: sn_tair
+   3: temperature at 10m (interpolated orca2)
+   ----------------------------------------------------------------------------------------------------------------------------
+   1: q_10.15JUNE2009_orca2.nc
+   2: sn_humi
+   3: humidity at 10m (interpolated orca2)
+   ----------------------------------------------------------------------------------------------------------------------------
+   1: ncar_prec.15JUNE2009_orca2.nc
+   2: sn_prec, sn_snow
+   3: precipitations (liquids & solids) (interpolated orca2)
+   ----------------------------------------------------------------------------------------------------------------------------
+
+  NOTE: Corresponding namelist section :
+	!-----------------------------------------------------------------------
+	&namsbc_core   !   namsbc_core  CORE bulk formulea
+	!-----------------------------------------------------------------------
+	!              !   file name        ! frequency (hours) ! variable    ! time interpol. !  clim   ! 'yearly'/ ! weights  ! rotation !
+	!              !                    !  (if <0  months)  !   name      !    (logical)   !  (T/F)  ! 'monthly' ! filename ! pairing  !
+	   sn_wndi     = 'u_10_orca2'       ,       6           , 'U_10_MOD'  ,    .true.      , .false.  , 'yearly'  ,   ''     ,   'Uwnd'
+	   sn_wndj     = 'v_10_orca2'       ,       6           , 'V_10_MOD'  ,    .true.      , .false.  , 'yearly'  ,   ''     ,   'Vwnd'
+	   sn_qsr      = 'ncar_rad_orca2'   ,       24          , 'SWDN_MOD'  ,    .true.      , .false.  , 'yearly'  ,   ''     ,   ''
+	   sn_qlw      = 'ncar_rad_orca2'   ,       24          , 'LWDN_MOD'  ,    .true.      , .false.  , 'yearly'  ,   ''     ,   ''
+	   sn_tair     = 't_10_orca2'       ,       6           , 'T_10_MOD'  ,    .true.      , .false.  , 'yearly'  ,   ''     ,   ''
+	   sn_humi     = 'q_10_orca2'       ,       6           , 'Q_10_MOD'  ,    .true.      , .false.  , 'yearly'  ,   ''     ,   ''
+	   sn_prec     = 'ncar_precip_orca2',       -1          , 'RAIN'      ,    .true.      , .false.  , 'yearly'  ,   ''     ,   ''
+	   sn_snow     = 'ncar_precip_orca2',       -1          , 'SNOW'      ,    .true.      , .false.  , 'yearly'  ,   ''     ,   ''
+	   sn_tdif     = 'taudif_core'      ,       24          , 'taudif'    ,    .true.      , .false.  , 'yearly'  ,   ''     ,   ''
+	!
+	   cn_dir      = './'      !  root directory for the location of the bulk files
+	   ln_2m       = .false.   !  air temperature and humidity referenced at 2m (T) instead 10m (F)
+	   ln_taudif   = .false.   !  HF tau contribution: use "mean of stress module - module of the mean stress" data ?
+	   rn_pfac     = 1.        !  multiplicative factor for precipitation (total & snow)
+
+##########################################################################################################################
+Input files used only if runoffs existing (in namelist ln_rnf=.true.)    
+
+   1: runoff_core_monthly.nc	
+   2: sn_rnf, sn_cnf
+   3: runoff (interpolated orca2)
+   ----------------------------------------------------------------------------------------------------------------------------
+
+ NOTE: Corresponding namelist section :
+	!-----------------------------------------------------------------------
+	&namsbc_rnf    !   runoffs namelist surface boundary condition
+	!-----------------------------------------------------------------------
+	!              !   file name               u frequency (hours) ! variable      ! time interpol. !  clim   ! 'yearly'/ ! weights  ! rotation !
+	!              !                           !  (if <0  months)  !   name        !    (logical)   !  (T/F)  ! 'monthly' ! filename ! pairing  !
+	   sn_rnf       = 'runoff_core_monthly'    ,  -1               , 'sorunoff'    ,    .false.     , .true.  , 'yearly'  , ''       , ''
+	   sn_cnf       = 'runoff_core_monthly'    ,   0               , 'socoefr0'    ,    .false.     , .true.  , 'yearly'  , ''       , ''
+	   cn_dir       = './'      !  root directory for the location of the runoff files
+	   ln_rnf_emp   =   .false. !  runoffs included into precipitation field (T) or into a file (F)
+	   ln_rnf_mouth =   .false. !  specific treatment at rivers mouths
+	   rn_hrnf      =  15.e0    !  depth over which enhanced vertical mixing is used
+	   rn_avt_rnf   =   1.e-3   !  value of the additional vertical mixing coef. [m2/s]
+	   rn_rfact     =   1.e0    !  multiplicative factor for runoff
+   
+##########################################################################################################################
+
+##########################################################################################################################
+Input files used only if Surface restoring terms for T and/or S (in namelist ln_ssr=.true.)
+
+   1: sss_data.nc	
+   2: sn_sss
+   3: surface salinity data (from Levitus) used only if restoring term on surface salinity 
+   ----------------------------------------------------------------------------------------------------------------------------
+   1: sst_data.nc	
+   2: sn_sst
+   3: surface temperature data (from Levitus) used only if restoring term on surface temperature 
+   ----------------------------------------------------------------------------------------------------------------------------
+   
+##########################################################################################################################
+Input files used only if light penetration activated (in namelist ln_traqsr=.true.)
+
+   1: chlorophyll.nc
+   2: sn_chl
+   3: monthly mean climatological surface chlorophyll concentration from Seawifs 
+   ----------------------------------------------------------------------------------------------------------------------------
+   1: kRGB61.txt
+   3: optical look-up table for attenuation of R G B light (ascii)
+   ----------------------------------------------------------------------------------------------------------------------------
+
+##########################################################################################################################
+Input files used only when tidal mixing activated (i.e. key_zdftmx activated)
+
+   1: K1rowdr 	
+   3: Tidal energy for K1 tides (Sun) (mW/m2)
+   ----------------------------------------------------------------------------------------------------------------------------
+   1: M2rowdrg.nc	
+   3: Tidal energy for M2 tides (Moon) (mW/m2)
+   ----------------------------------------------------------------------------------------------------------------------------
+
+additionally file used only if in namelist ln_tmx_itf=.true.
+
+   1: mask_itf.nc	
+   3: mask for modification of vertical eddy diffusivity coefficient in Indonesian Through Flow area
+   ----------------------------------------------------------------------------------------------------------------------------
+
+##########################################################################################################################
+Input files used only for diagnostic: Atlantic/Pacific/Indian basins computation (in namelist ln_subbas=.true.)
+
+   ----------------------------------------------------------------------------------------------------------------------------
+   1: subbasins.nc                   
+   3: used to build on line sums by ocean basins (for diagnostics)
+
+##########################################################################################################################
+Input files used only with AGRIF (key_agrif)
+
+   ----------------------------------------------------------------------------------------------------------------------------
+   1: all 1_* files                 
+   3: for additional grid we need to create 2_* files and so on  
+   ----------------------------------------------------------------------------------------------------------------------------
+   1: bathy_updated.nc              
+   3: correspond to the mother grid bathymetry updated ; it has to be copied to replace
+      bathymeter.nc ( mv bathy_updated.nc  bathymeter.nc )     
