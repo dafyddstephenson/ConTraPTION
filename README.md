@@ -95,7 +95,8 @@ If `ln_traadv_tvd = .true.` then the advection scheme is the nonlinear model def
 
 For `rn_traadv_weight_?`, a purely centred scheme is determined by value `0` and a purely upwind scheme by value `1`. If negative, then an automatic parameterisation decided by the _weighted mean_ scheme of Fiadeiro and Veronis (1977) is implemented.
 
-###TAM output
+### TAM output
+
 If using the provided submission script, the output files are stitched in space (after being split for parallel processing) using the `rebuild_nemo` tool, and concatenated in time using `ncrcat`. The final output file contains the following variables:
 
 - `nav_lon` and `nav_lat` (2D longitude and latitude arrays for the grid)
