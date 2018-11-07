@@ -68,6 +68,12 @@ In the tangent-linear model, concentrations in `PT_init.nc` are propagated forwa
 Ensure `nn_it000 = 1` (even if beginning later in the trajectory). 
 For the tangent-linear model, `nn_itend` should be set to the desired number of time steps in the run (up to the length of the trajectory). In the adjoint model, `nn_itend` determines the "start point" relative to the end of the trajectory, from which model will run backwards.
 
+**Surface ventilation**:
+
+-**namsbc\_ssr**
+ - The namelist parameter `nn_sstr` determines whether the passive tracer is removed at the surface
+ - The namelist parameter `rn_dqdt` sets the time scale of the surface restoring scheme. The default, -40Wm^-2K^-1, corresponds to 60 days over a 50 m mixed layer.
+
 **At the end of the namelist file:**
 
 - **namtrj**
@@ -89,11 +95,55 @@ If `ln_traadv_tvd = .true.` then the advection scheme is the nonlinear model def
 
 For `rn_traadv_weight_?`, a purely centred scheme is determined by value `0` and a purely upwind scheme by value `1`. If negative, then an automatic parameterisation decided by the _weighted mean_ scheme of Fiadeiro and Veronis (1977) is implemented.
 
-### TAM output
-_not yet complete_
+###TAM output
+If using the provided submission script, the output files are stitched in space (after being split for parallel processing) using the `rebuild_nemo` tool, and concatenated in time using `ncrcat`. The final output file contains the following variables:
+
+- `nav_lon` and `nav_lat` (2D longitude and latitude arrays for the grid)
+- `tn_tl` (tangent linear) or `tn_ad` (adjoint): a 4D (x,y,z,t) array describing the spatiotemporal distribution of passive tracer concentrations at the "now" points in the NEMOTAM time stepping procedure.
+- `tb_tl` (tangent-linear) or `tb_ad` (adjoint): as above, but for the "before" points in the time-stepping procedure. 
+
+**NOTE**: the total tracer _concentration_ distribution at any given point is the sum `tb_tl`+`tn_tl`. The volume can be calculated by producing a `mesh_mask` file (`nn_msh = 1` in the namelist file) and multiplying the concentrations by `e1t`,`e2t` and `e3t` (the grid dimensions).
+
+- `tmp_rm` a 3D (x,y,t) array describing the _cumulative_ removal of tracer at the surface during the run (needs to be differenced to produce a time series).
+- `tn` and `sn`: the temperature and salinity of the ocean background state at the point in the trajectory corresponding to the output. May be used, for example, to produce TS plots of tracer transformation.
 
 ## Modifications to model defaults
-### _not yet complete_
+Passive tracer mode (`ln_swi_opatam` >200) is kept separate from the model's standard tangent-linear (`ln_swi_opatam = 2`) and adjoint (`ln_swi_opatam = 3`) modes, using a different set of routines, defined in `MY_SRC/pt_tam.f90`.
+
+### Standard modifications and bug fixes:
+- `domwri.F90`: argument `kindic` added to subroutine `dom_uniq`. `kindic` is used by the `oce_tam_init` routine to initialise TAM variables
+- `oce_tam.F90` building of `{t,u,v,f}msk_i` variables using `dom_uniq`
+- `dynzdf_imp_tam.F90` 
+- `trj_tam.F90`: Addition of routines `ad_trj_ini`, `ad_trj_wri` and variables for writing the adjoint trajectory 
+
+### Modifications for passive tracer model:
+
+- `sbcmod_tam.F90` handles surface boundary conditions. For `PT_TAM`
+ - A new variable `sbc_tmp_rm`is defined **in the adjoint**, which holds the cumulative tracer removed at the surface (summed from the instantaneous variable `sst_m_ad` defined in the routine `sbc_ssr_adj`). In the tangent-linear, the surface removal scheme is handled by routine `pt_tan` in `pt_tam.F90`.
+ - the `nsbc` variable which chooses SBC type is forced to choose flux formulation
+- `tamtrj.F90`
+ - `nn_ittrjoffset` parameter added, allowing TL runs to start later than the beginning of the trajectory
+ - `cl_dirtrj` variable, which sets output filenames and location is modified to support up to 100 million time steps (18ky) with a consistent filename structure (`PT_TAM_output_????????.nc`), or higher with modified filename structure.
+- `nemogcm_tam.F90`
+ - Added additional cases for `ln_swi_opatam` variable: values between 200 and 249 signal passive tracer mode, and the routines of `pt_tam.F90` take over.
+- `trj_tam.F90`
+ - `cl_dirtrj` variable modified as in `tamtrj.F90` and similarly `cl_tantrj` and `cl_adjtrj`
+ - added SSH (`sshn`) to trajectory outputs
+- `traadv_tam.F90`
+ - Commented options for all nonlinear advection schemes except TVD
+ - If any scheme other than TVD is selected, the 2nd order linear scheme is forced 
+ - For `ln_traadv_cen2`, variables `rn_traadv_weight_h` and `rn_traadv_weight_v` are defined. Their values are written to the `ocean.output` file during the run. Routines `tra_adv_cen2_tan` or `tra_adv_cen2_tan` are called with their values.
+- `traadv_cen2_tam.F90`
+ - horizontal and vertical diffusion coefficients are now seen
+ - added variables `{p,z}r_ups_{h,v}` to determine weighting between centred and upstream schemes
+ - Defined `zsgm{u,v,w}` and `ztht{u,v,w}`, the sigma and theta parameters of the Fiadeiro and Veronis (1977, p6) weighted mean advection scheme 
+ -  Added (later commented) ability to output the value of theta for debugging.
+ - Added calculation of theta in u and v
+ - Added calculation of sigma from theta. Sigma becomes the weighting parameter between centred and upwind.
+ - Added similar calculations for vertical advection
+ - Added similar calculations in the adjoint routine
+ - Implemented advection scheme choices for adjoint test routine
+- **`pt_tam.F90` (new file)**
 
 ## References
 Fiadeiro, M.E. and Veronis, G., 1977. On weighted-mean schemes for the finite-difference approximation to the advection-diffusion equation. Tellus, 29(6), pp.512-522.
