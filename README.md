@@ -70,26 +70,26 @@ For the tangent-linear model, `nn_itend` should be set to the desired number of 
 
 **Surface ventilation**:
 
--**namsbc\_ssr**
- - The namelist parameter `nn_sstr` determines whether the passive tracer is removed at the surface
- - The namelist parameter `rn_dqdt` sets the time scale of the surface restoring scheme. The default, -40Wm^-2K^-1, corresponds to 60 days over a 50 m mixed layer.
+- **namsbc\_ssr**
+  - The namelist parameter `nn_sstr` determines whether the passive tracer is removed at the surface
+  - The namelist parameter `rn_dqdt` sets the time scale of the surface restoring scheme. The default, -40Wm^-2K^-1, corresponds to 60 days over a 50 m mixed layer.
 
 **At the end of the namelist file:**
 
 - **namtrj**
- - `cn_dirtrj` should match that set in the trajectory namelist, specifying the location of the trajectory output.
- - `nn_ittrjoffset`determines the start (end) point of tangent-linear (adjoint) runs, if it is desired to begin the run at a later point in the trajectory.
+  - `cn_dirtrj` should match that set in the trajectory namelist, specifying the location of the trajectory output.
+  - `nn_ittrjoffset`determines the start (end) point of tangent-linear (adjoint) runs, if it is desired to begin the run at a later point in the trajectory.
 - **namtst\_tam**
- - `ln_swi_opatam` determines TAM mode. `200` for tangent-linear and `201` for adjoint.
+  - `ln_swi_opatam` determines TAM mode. `200` for tangent-linear and `201` for adjoint.
 - **namtl_trj** These settings are not seen by PT\_TAM
 - **nampttam**
- - `cn_pttam_init`Initial tracer distribution file
- - `nn_pttam_out_freq`Frequency of output (15 time steps = 1d)
+  - `cn_pttam_init`Initial tracer distribution file
+  - `nn_pttam_out_freq`Frequency of output (15 time steps = 1d)
 - **namtra\_adv\_tam** Options for passive tracer advection scheme
- - `ln_traadv_cen2` 2nd order centred
- - `ln_traadv_tvd` total variance diminishing (**NONLINEAR**)
- - `rn_traadv_weight_h` balance between upwind and centred scheme (lateral advection)
- - `rn_traadv_weight_v` balance between upwind and centred scheme (centred advection)
+  - `ln_traadv_cen2` 2nd order centred
+  - `ln_traadv_tvd` total variance diminishing (**NONLINEAR**)
+  - `rn_traadv_weight_h` balance between upwind and centred scheme (lateral advection)
+  - `rn_traadv_weight_v` balance between upwind and centred scheme (centred advection)
 
 If `ln_traadv_tvd = .true.` then the advection scheme is the nonlinear model default. In this case, the adjoint model is no longer a true adjoint of the tangent-linear model.
 
