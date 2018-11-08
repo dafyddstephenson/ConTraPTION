@@ -144,8 +144,21 @@ Passive tracer mode (`ln_swi_opatam` >200) is kept separate from the model's sta
   - Added similar calculations for vertical advection
   - Added similar calculations in the adjoint routine
   - Implemented advection scheme choices for adjoint test routine
-- **`pt_tam.F90` (new file)**
-  - 
+- **`pt_tam.F90` (new file)**, contains subroutines:
+  - `pt_init`
+    - reads `cn_pttam_init` from namelist to determine input file
+    - reads `nn_pttam_out_freq` from namelist to determine frequency of TAM output
+    - allocates variables `tmsk_region`, `tmsk_nasmw`, `tmp_rm` and `sal_rm`
+  - `pt_finalise`
+    - deallocates variables  `tmsk_region`, `tmsk_nasmw`, `tmp_rm` and `sal_rm` 
+  - `pt_run`
+    - sees `ln_swi_opatam` and calls either `pt_tan` (200) or `pt_adj` (201) 
+  - `pt_tan`
+    - called in place of `stp_tan` in `nemogcm_tam.F90`. `pt_tan` also calls `stp_tan` but performs additional steps to reset dynamic feedbacks between time steps (making tracers passive) and to calculate `tmp_rm` surface removal volumes.
+  - `pt_adj`
+    - called in place of `stp_adj` in `nemogcm_tam.F90`. `pt_tan` also calls `stp_adj` but performs additional steps to reset dynamic feedbacks between time steps (making tracers passive). `tmp_rm` is obtained from `sbc_tmp_rm` here, calculated in our modified`sbcmod_tam.F90`.
+  - `pt_tam_wri`
+    - This subroutine sets the filename structure and variables of the output files of a passive tracer run. The variable `wri_swi` is used in the call to pass on whether to write tangent-linear or adjoint variables.
 ## References
 Fiadeiro, M.E. and Veronis, G., 1977. On weighted-mean schemes for the finite-difference approximation to the advection-diffusion equation. Tellus, 29(6), pp.512-522.
 
