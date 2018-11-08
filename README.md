@@ -120,32 +120,32 @@ Passive tracer mode (`ln_swi_opatam` >200) is kept separate from the model's sta
 ### Modifications for passive tracer model:
 
 - `sbcmod_tam.F90` handles surface boundary conditions. For `PT_TAM`
- - A new variable `sbc_tmp_rm`is defined **in the adjoint**, which holds the cumulative tracer removed at the surface (summed from the instantaneous variable `sst_m_ad` defined in the routine `sbc_ssr_adj`). In the tangent-linear, the surface removal scheme is handled by routine `pt_tan` in `pt_tam.F90`.
- - the `nsbc` variable which chooses SBC type is forced to choose flux formulation
+  - A new variable `sbc_tmp_rm`is defined **in the adjoint**, which holds the cumulative tracer removed at the surface (summed from the instantaneous variable `sst_m_ad` defined in the routine `sbc_ssr_adj`). In the tangent-linear, the surface removal scheme is handled by routine `pt_tan` in `pt_tam.F90`.
+  - the `nsbc` variable which chooses SBC type is forced to choose flux formulation
 - `tamtrj.F90`
- - `nn_ittrjoffset` parameter added, allowing TL runs to start later than the beginning of the trajectory
- - `cl_dirtrj` variable, which sets output filenames and location is modified to support up to 100 million time steps (18ky) with a consistent filename structure (`PT_TAM_output_????????.nc`), or higher with modified filename structure.
+  - `nn_ittrjoffset` parameter added, allowing TL runs to start later than the beginning of the trajectory
+  - `cl_dirtrj` variable, which sets output filenames and location is modified to support up to 100 million time steps (18ky) with a consistent filename structure (`PT_TAM_output_????????.nc`), or higher with modified filename structure.
 - `nemogcm_tam.F90`
- - Added additional cases for `ln_swi_opatam` variable: values between 200 and 249 signal passive tracer mode, and the routines of `pt_tam.F90` take over.
+  - Added additional cases for `ln_swi_opatam` variable: values between 200 and 249 signal passive tracer mode, and the routines of `pt_tam.F90` take over.
 - `trj_tam.F90`
- - `cl_dirtrj` variable modified as in `tamtrj.F90` and similarly `cl_tantrj` and `cl_adjtrj`
- - added SSH (`sshn`) to trajectory outputs
+  - `cl_dirtrj` variable modified as in `tamtrj.F90` and similarly `cl_tantrj` and `cl_adjtrj`
+  - added SSH (`sshn`) to trajectory outputs
 - `traadv_tam.F90`
- - Commented options for all nonlinear advection schemes except TVD
- - If any scheme other than TVD is selected, the 2nd order linear scheme is forced 
- - For `ln_traadv_cen2`, variables `rn_traadv_weight_h` and `rn_traadv_weight_v` are defined. Their values are written to the `ocean.output` file during the run. Routines `tra_adv_cen2_tan` or `tra_adv_cen2_tan` are called with their values.
+  - Commented options for all nonlinear advection schemes except TVD
+  - If any scheme other than TVD is selected, the 2nd order linear scheme is forced 
+  - For `ln_traadv_cen2`, variables `rn_traadv_weight_h` and `rn_traadv_weight_v` are defined. Their values are written to the `ocean.output` file during the run. Routines `tra_adv_cen2_tan` or `tra_adv_cen2_tan` are called with their values.
 - `traadv_cen2_tam.F90`
- - horizontal and vertical diffusion coefficients are now seen
- - added variables `{p,z}r_ups_{h,v}` to determine weighting between centred and upstream schemes
- - Defined `zsgm{u,v,w}` and `ztht{u,v,w}`, the sigma and theta parameters of the Fiadeiro and Veronis (1977, p6) weighted mean advection scheme 
- -  Added (later commented) ability to output the value of theta for debugging.
- - Added calculation of theta in u and v
- - Added calculation of sigma from theta. Sigma becomes the weighting parameter between centred and upwind.
- - Added similar calculations for vertical advection
- - Added similar calculations in the adjoint routine
- - Implemented advection scheme choices for adjoint test routine
+  - horizontal and vertical diffusion coefficients are now seen
+  - added variables `{p,z}r_ups_{h,v}` to determine weighting between centred and upstream schemes
+  - Defined `zsgm{u,v,w}` and `ztht{u,v,w}`, the sigma and theta parameters of the Fiadeiro and Veronis (1977, p6) weighted mean advection scheme 
+  -  Added (later commented) ability to output the value of theta for debugging.
+  - Added calculation of theta in u and v
+  - Added calculation of sigma from theta. Sigma becomes the weighting parameter between centred and upwind.
+  - Added similar calculations for vertical advection
+  - Added similar calculations in the adjoint routine
+  - Implemented advection scheme choices for adjoint test routine
 - **`pt_tam.F90` (new file)**
-
+  - 
 ## References
 Fiadeiro, M.E. and Veronis, G., 1977. On weighted-mean schemes for the finite-difference approximation to the advection-diffusion equation. Tellus, 29(6), pp.512-522.
 
