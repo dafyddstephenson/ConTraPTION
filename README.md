@@ -1,13 +1,35 @@
 # PT\_TAM\_ORCA2
 ## Overview
-This is a NEMO *configuration* which can be used to track passive tracers in NEMO ORCA2 with NEMOTAM.  This repository requires existing NEMO v3.4 and NEMOTAM installs, and should sit in the `CONFIG` folder, e.g.
+This is a NEMO *configuration* which can be used to track passive tracers in NEMO ORCA2 with NEMOTAM.  
 
-`/home/username/NEMO/dev_v3_4_STABLE_2012/NEMOGCM/CONFIG`
-
-## Basics
 NEMOTAM is a tangent-linear and adjoint model (TAM) counterpart to the nonlinear NEMO primitive equation solving ocean circulation model (c.f. *Vidard et al.*, 2011). As such, it details the evolution of small perturbations to a known background state (the "trajectory") obtained by running the nonlinear model (tangent-linear mode). In adjoint mode, "cost functions" of the ocean state are run backwards along the trajectory to determine their sensitivity to earlier perturbations.
 
-In `PT_TAM_ORCA2`, passive tracer is injected into the model as a "perturbation" (/"cost function") , and tracked forward (/backward) using the tangent-linear (/adjoint) model. At the surface, the tracer is removed using a restoring mechanism. A record of tracer removal is returned along with a record of tracer distribution as part of NEMOTAM's output.
+In `PT_TAM_ORCA2`, passive tracer is injected into the model as a "perturbation" (/"cost function") , and tracked forward (/backward) using the tangent-linear (/adjoint) model. At the surface, the tracer can be removed using a restoring mechanism. A record of tracer removal is returned along with a record of tracer distribution as part of NEMOTAM's output.
+
+## Installation
+### Installing NEMO and PT_TAM configuration
+This repository requires existing NEMO v3.4 (and NEMOTAM) installs. These can be installed using:
+`svn co https://forge.ipsl.jussieu.fr/nemo/svn/NEMO/releases/release-3.4`
+This provides the source code for the model and a reference configuration, on which the PT_TAM configuration should be based.
+
+For a first-time NEMO install, the user will need to set up their machine's architecture. This will either already exist somewhere inside `NEMOGCM/ARCH` (e.g. `ARCH/<DIR>/arch-<ARCHITECTURE>.fcm`) or will have to be created. Instructions for creating/modifying this file are found at:
+http://forge.ipsl.jussieu.fr/nemo/wiki/Users/ModelInstall#Setupyourarchitectureconfigurationfile.
+
+At this point, the PT_TAM configuration can be created. To do this, run the following command in the `CONFIG` directory:
+`./makenemo -d "OPATAM_SRC LIM_SRC_2 OPA_SRC" -n PT_TAM -m <ARCHITECTURE> add_key "key_mpp_mpi  key_mpp_rep key_nosignedzero key_tam key_diainstant" del_key "key_zdfddm key_iomput"`
+This creates a new configuration with ocean (`OPA_SRC`) and sea-ice (`LIM_SRC_2`) dynamics, and TAM (`OPATAM_SRC`, `key_tam`) compatibility. 
+(NOTE: customise line as required, e.g. regarding parallel processing - `key_mpp_mpi` and `key_mpp_rep`. Replace <ARCHITECTURE> with the relevant substring from the arch. filename)
+ 
+TO DO:
+- write instructions for copying MY_SRC files into the newly made config and recompiling
+- write instructions for downloading and linking ORCA2_INPUT files
+LONGER TERM
+- maybe rewrite experiment directory so it contains a shell script which creates symlinks to user's input files etc. / applies their desired namelist parameters to the default/reference namelist in EXP00?
+
+## Pop
+The new install requires forcing and input files for ORCA2, which can be found here:
+https://prodn.idris.fr/thredds/catalog/ipsl_public/romr005/Online_forcing_archives/release-3.4/catalog.html?dataset=DatasetScanipsl_public/romr005/Online_forcing_archives/release-3.4/ORCA2_LIM_v3.4.tar
+
 
 ## Directory structure
 The default structure of a NEMO configuration is 
