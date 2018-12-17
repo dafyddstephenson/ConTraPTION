@@ -1,5 +1,0 @@
-removed AGRIF related files:
-1_namelist  1_namelist_ice_lim2  AGRIF_FixedGrids.in  
-
-removed ioserver related files (not seen by CONFIG)
-iodef.xml 
