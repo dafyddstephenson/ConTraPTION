@@ -1,3 +1,0 @@
-#!/bin/sh
-PATH=/home/ds4g15/NEMO/dev_v3_4_STABLE_2012/NEMOGCM/CONFIG/TL_PASSIVE2/BLD/bin:$PATH
-export PATH

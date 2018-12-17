@@ -1,1 +1,0 @@
-../../../NEMO/OPA_SRC/OBS/obs_rot_vel.F90

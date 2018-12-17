@@ -1,1 +1,0 @@
-../../../NEMO/OPATAM_SRC/DYN/dynspg_tam.F90
