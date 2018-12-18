@@ -17,7 +17,7 @@ This provides the source code for the model and a reference configuration, on wh
 For a first-time NEMO install, the user will need to set up their machine's architecture. This will either already exist somewhere inside `NEMOGCM/ARCH` (e.g. `ARCH/<DIR>/arch-<ARCHITECTURE>.fcm`) or will have to be created. Instructions for creating/modifying this file are found at:
 http://forge.ipsl.jussieu.fr/nemo/wiki/Users/ModelInstall#Setupyourarchitectureconfigurationfile.
 
-<!-- arch-X64_MOBILIS.fcm for mobilis, from the NEMO 3.6 source code --!>
+<!--- arch-X64_MOBILIS.fcm for mobilis, from the NEMO 3.6 source code ---!>
 
 At this point, the PT_TAM configuration can be created. To do this, run the following command in the `CONFIG` directory:
 
@@ -30,7 +30,7 @@ This configuration can now be modified to include passive tracer-related subrout
 
 `./makenemo -n PT_TAM`
 
-<!---LONGER TERM
+<!--- LONGER TERM
 maybe rewrite experiment directory so it contains a shell script which creates symlinks to user's input files etc. / applies their desired namelist parameters to the default/reference namelist in EXP00?
 ---!>
 
