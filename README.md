@@ -47,8 +47,10 @@ You should now have a NEMO configuration with the following structure
     - `MY_SRC/`
     - `WORK/`
     - `EXP00/`
-and an experiment area with the structure
-- `/<PATH TO EXPERIMENT AREA>/
+    
+and an experiment area with the structure    
+
+- `/< PATH TO EXPERIMENT AREA /
  - `ORCA2_INPUT`
  - `RUN_DIR`
 
