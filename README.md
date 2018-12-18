@@ -17,8 +17,6 @@ This provides the source code for the model and a reference configuration, on wh
 For a first-time NEMO install, the user will need to set up their machine's architecture. This will either already exist somewhere inside `NEMOGCM/ARCH` (e.g. `ARCH/<DIR>/arch-<ARCHITECTURE>.fcm`) or will have to be created. Instructions for creating/modifying this file are found at:
 http://forge.ipsl.jussieu.fr/nemo/wiki/Users/ModelInstall#Setupyourarchitectureconfigurationfile.
 
-<!--- arch-X64_MOBILIS.fcm for mobilis, from the NEMO 3.6 source code ---!>
-
 At this point, the PT_TAM configuration can be created. To do this, run the following command in the `CONFIG` directory:
 
 `./makenemo -d "OPATAM_SRC LIM_SRC_2 OPA_SRC" -n PT_TAM -m <ARCHITECTURE> add_key "key_mpp_mpi  key_mpp_rep key_nosignedzero key_tam key_diainstant" del_key "key_zdfddm key_iomput"`
@@ -29,10 +27,6 @@ This creates a new configuration with ocean (`OPA_SRC`) and sea-ice (`LIM_SRC_2`
 This configuration can now be modified to include passive tracer-related subroutines. To do so, move the contents of `MY_SRC` from this repository into the `NEMOGCM/CONFIG/PT_TAM/MY_SRC` directory and recompile using
 
 `./makenemo -n PT_TAM`
-
-<!--- LONGER TERM
-maybe rewrite experiment directory so it contains a shell script which creates symlinks to user's input files etc. / applies their desired namelist parameters to the default/reference namelist in EXP00?
----!>
 
 ### Obtaining and linking forcing and other model input files
 In order to run NEMO-ORCA2, additional files are required, which can be found at
