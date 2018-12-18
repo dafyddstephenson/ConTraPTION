@@ -9,51 +9,54 @@ In `PT_TAM_ORCA2`, passive tracer is injected into the model as a "perturbation"
 ## Installation
 ### Installing NEMO and PT_TAM configuration
 This repository requires existing NEMO v3.4 (and NEMOTAM) installs. These can be installed using:
+
 `svn co https://forge.ipsl.jussieu.fr/nemo/svn/NEMO/releases/release-3.4`
+
 This provides the source code for the model and a reference configuration, on which the PT_TAM configuration should be based.
 
 For a first-time NEMO install, the user will need to set up their machine's architecture. This will either already exist somewhere inside `NEMOGCM/ARCH` (e.g. `ARCH/<DIR>/arch-<ARCHITECTURE>.fcm`) or will have to be created. Instructions for creating/modifying this file are found at:
 http://forge.ipsl.jussieu.fr/nemo/wiki/Users/ModelInstall#Setupyourarchitectureconfigurationfile.
 
+<!-- arch-X64_MOBILIS.fcm for mobilis, from the NEMO 3.6 source code --!>
+
 At this point, the PT_TAM configuration can be created. To do this, run the following command in the `CONFIG` directory:
+
 `./makenemo -d "OPATAM_SRC LIM_SRC_2 OPA_SRC" -n PT_TAM -m <ARCHITECTURE> add_key "key_mpp_mpi  key_mpp_rep key_nosignedzero key_tam key_diainstant" del_key "key_zdfddm key_iomput"`
+
 This creates a new configuration with ocean (`OPA_SRC`) and sea-ice (`LIM_SRC_2`) dynamics, and TAM (`OPATAM_SRC`, `key_tam`) compatibility. 
 (NOTE: customise line as required, e.g. regarding parallel processing - `key_mpp_mpi` and `key_mpp_rep`. Replace <ARCHITECTURE> with the relevant substring from the arch. filename)
  
-TO DO:
-- write instructions for copying MY_SRC files into the newly made config and recompiling
-- write instructions for downloading and linking ORCA2_INPUT files
-LONGER TERM
-- maybe rewrite experiment directory so it contains a shell script which creates symlinks to user's input files etc. / applies their desired namelist parameters to the default/reference namelist in EXP00?
+This configuration can now be modified to include passive tracer-related subroutines. To do so, move the contents of `MY_SRC` from this repository into the `NEMOGCM/CONFIG/PT_TAM/MY_SRC` directory and recompile using
 
-## Pop
-The new install requires forcing and input files for ORCA2, which can be found here:
+`./makenemo -n PT_TAM`
+
+<!---LONGER TERM
+maybe rewrite experiment directory so it contains a shell script which creates symlinks to user's input files etc. / applies their desired namelist parameters to the default/reference namelist in EXP00?
+---!>
+
+### Obtaining and linking forcing and other model input files
+In order to run NEMO-ORCA2, additional files are required, which can be found at
+
 https://prodn.idris.fr/thredds/catalog/ipsl_public/romr005/Online_forcing_archives/release-3.4/catalog.html?dataset=DatasetScanipsl_public/romr005/Online_forcing_archives/release-3.4/ORCA2_LIM_v3.4.tar
 
+Unpack this archive into a directory named `ORCA2_INPUT`. This will be at the same level as your experiment directory and can be anywhere you choose.
 
-## Directory structure
-The default structure of a NEMO configuration is 
+### Creating an experiment directory
+At the same level as `ORCA2_INPUT`, create an experiment directory (e.g. `RUN_DIR`). Copy the contents of our template experiment directory into this directory. Use `cp -d` to preseve the relative symbolic links to the model input files.
 
+### Directory structure
 
+You should now have a NEMO configuration with the following structure
 - `/home/username/NEMO/dev_v3_4_STABLE_2012/NEMOGCM/CONFIG/`
-
- - `CONFIG_NAME/`
+ - `PT_TAM/`
     - `BLD/`
     - `MY_SRC/`
     - `WORK/`
     - `EXP00/`
-
-
-This repository contains additional directories, relevant to running passive tracer experiments, which serve as templates. The contents of these can either be copied or linked to from wherever you intend to run your experiments, as long as symbolic links to files in `../../NEMO` remain intact. The directories are:
-
-- `PT_TAM_ORCA2/`
-  - `EXP_DIR_TEMPLATE/`
-    - `RUN_DIR/`
-    - `ORCA2_INPUT/`
-
-`RUN_DIR` can be renamed as desired, and is where the executables and namelists for a run are contained.
-
-`ORCA2_INPUT` contains files necessary for running NEMO in this configuration. The file `README_3.4` describes the meaning of each file. COREII normal-year forcing files are not included in this repository as they are too large. Details on the missing files and how to acquire them are found in `MISSING_FILES`.
+and an experiment area with the structure
+- `/<PATH TO EXPERIMENT AREA>/
+ - `ORCA2_INPUT`
+ - `RUN_DIR`
 
 ## Running passive tracer experiments
 
