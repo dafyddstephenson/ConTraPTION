@@ -41,6 +41,7 @@ At the same level as `ORCA2_INPUT`, create an experiment directory (e.g. `RUN_DI
 ### Directory structure
 
 You should now have a NEMO configuration with the following structure
+
 - `/home/username/NEMO/dev_v3_4_STABLE_2012/NEMOGCM/CONFIG/`
  - `PT_TAM/`
     - `BLD/`
@@ -50,7 +51,7 @@ You should now have a NEMO configuration with the following structure
     
 and an experiment area with the structure    
 
-- `/< PATH TO EXPERIMENT AREA /
+- `/<PATH TO EXPERIMENT AREA>/`
  - `ORCA2_INPUT`
  - `RUN_DIR`
 
