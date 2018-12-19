@@ -162,7 +162,7 @@ CONTAINS
       REAL(wp), POINTER, DIMENSION(:,:,:) :: zthtu , zthtv , zthtw  !    "         "
       CHARACTER(LEN=32) :: zctheta
       INTEGER :: itheta
-!!!later      LOGICAL :: ithetaIO
+
       !2016-11-16 added sigma (sgm) and theta (tht) corresponding to parameters in Fiadeiro&Veronis1977
     
      ! 2016-05-20 - SAM: added optional trajectory-upstream advection scheme
@@ -181,20 +181,14 @@ CONTAINS
       !
       CALL wrk_alloc( jpi, jpj, ztfreez )
       CALL wrk_alloc( jpi, jpj, jpk, zwztl, zwxtl, zwytl )
-!!!later      ! 2016-11-22   
+      
       IF (zr_ups_h < 0.0_wp) THEN
-         CALL wrk_alloc(jpi, jpj, jpk, zthtu, zthtv) !perhaps uncomment this? (2017-03-08)
+         CALL wrk_alloc(jpi, jpj, jpk, zthtu, zthtv) 
       END IF
       IF (zr_ups_v <0.0_wp) THEN
          CALL wrk_alloc(jpi, jpj, jpk,  zthtw)
       END IF
-!!!later      !    IF (MOD(kt-kit000+1, nn_ittrjfrq_tan) == 0) THEN
-!!!later      !       ithetaIO = .TRUE.
-!!!later      !    ELSE
-!!!later      !       ithetaIO = .FALSE.
-!!!later      !    END IF
 
-!!!later      !      ithetaIO = .FALSE. !2016-11-30 ignoring theta output trigger
       !
       zwztl = 0._wp ; zwxtl = 0._wp ; zwytl = 0._wp
       !
@@ -206,13 +200,8 @@ CONTAINS
          !
       ENDIF
       
-      ! 2016-11-22
+      ! 2016-11-22 Calculate theta parameter for Fiadeiro and Veronis (1977) scheme
       IF (zr_ups_h < 0.0_wp) THEN
-!!!later         IF (ithetaIO) THEN
-!!!later            WRITE(zctheta, FMT='(A,I6.6,".nc")' ) , 'theta_', kt
-!!!later            zctheta = TRIM(zctheta)
-!!!later            CALL iom_open(zctheta, itheta, ldwrt=.TRUE., kiolib = jprstlib)
-!!!later         END IF
          
          DO jk = 1, jpkm1
             DO jj = 1, jpjm1
@@ -222,8 +211,6 @@ CONTAINS
                END DO
             END DO
          END DO
-!!!later         IF (ithetaIO) CALL iom_rstput(kt, kt, itheta, 'thtu', zthtu)
-!!!later         IF (ithetaIO) CALL iom_rstput(kt, kt, itheta, 'thtv', zthtv)
       END IF
 
       !
@@ -295,34 +282,20 @@ CONTAINS
 
         ! ##########################################################################
 
-         ! 2016-11-22
+         ! 2016-11-22 Calculate theta parameter for Fiadeiro and Veronis (1977) scheme
          IF (zr_ups_v < 0.0_wp) THEN
             DO jk = 2, jpk
                DO jj = 2, jpjm1
                   DO ji = fs_2, fs_jpim1
                      IF (jn==1) THEN
-!!!                        IF (avt(ji,jj,jk)>0.0_wp) THEN !2016-11-29 added conditional statement setting theta=0 everywhere vertical diffusion is 0 (e.g. land) to avoid singularity
                         zthtw(ji,jj,jk) = ( pwn(ji,jj,jk) /( e1t(ji,jj)*e2t(ji,jj)) ) / ( 2.0_wp * (1e-19_wp+avt(ji,jj,jk)))
-!!!                        ELSE
-!!!                        zthtw(ji,jj,jk) = 0.0_wp
-!!!                        END IF 
                      ELSE !2016-11-29 applied above change to salinity field
-!!!                        IF (fsavs(ji,jj,jk)>0.0_wp) THEN !2016-11-29 added conditional statement setting theta=0 everywhere vertical diffusion is 0 (e.g. land) to avoid singularity
                         zthtw(ji,jj,jk) = ( pwn(ji,jj,jk) /( e1t(ji,jj)*e2t(ji,jj)) ) / ( 2.0_wp * (1e-19_wp+fsavs(ji,jj,jk)))
-!!!                        ELSE
-!!!                        zthtw(ji,jj,jk) = 0.0_wp
-!!!                        END IF
                      ENDIF
                   END DO
                END DO
             END DO
-!!!later            ! IF (ithetaIO) THEN
-            !    IF (jn==jp_tem) THEN
-            !       CALL iom_rstput(kt, kt, itheta, 'thtw_1', zthtw)
-            !    ELSEIF (jn==jp_sal) THEN
-            !       CALL iom_rstput(kt, kt, itheta, 'thtw_2', zthtw)
-            !    END IF
-!!!later           ! END IF
+
          END IF
 
          DO jk = 2, jpk              ! Second order centered tracer flux at w-point
@@ -333,11 +306,6 @@ CONTAINS
                   IF (zr_ups_v >= 0.0_wp) THEN                  
                   zpw = 0.5_wp * (1.0_wp-zr_ups_v+zr_ups_v*(1.0_wp+sign(1.0_wp,pwn(ji,jj,jk))))
                   ELSE 
-!!!                     IF (jn==1) THEN 
-!!!                        thtw = ( pwn(ji,jj,jk) /( e1t(ji,jj)*e2t(ji,jj)) ) / ( 2.0_wp * avt(ji,jj,jk))          
-!!!                     ELSE
-!!!                        thtw = ( pwn(ji,jj,jk) /( e1t(ji,jj)*e2t(ji,jj)) ) / ( 2.0_wp * fsavs(ji,jj,jk))          
-!!!                     ENDIF
                   zsgmw = zthtw(ji,jj,jk) / (1.0_wp + abs(zthtw(ji,jj,jk)))
                   zpw = 0.5_wp * ( 1.0_wp + zsgmw )
                   
@@ -535,23 +503,15 @@ CONTAINS
             END DO
          END DO
          !
-
+!2016-11-29 calculate theta parameter for Fiadeiro and Veronis (1977 scheme)
          IF (zr_ups_v < 0.0_wp) THEN !calculate co-efficients for weighted mean scheme 2017-03-24
             DO jk = 2, jpk
                DO jj = 2, jpjm1
                   DO ji = fs_2, fs_jpim1
                      IF (jn==1) THEN
-!!!                        IF (avt(ji,jj,jk)>0.0_wp) THEN !2016-11-29 added conditional statement setting theta=0 everywhere vertical diffusion is 0 (e.g. land) to avoid singularity
                         zthtw(ji,jj,jk) = ( pwn(ji,jj,jk) /( e1t(ji,jj)*e2t(ji,jj)) ) / ( 2.0_wp * (1e-19_wp+avt(ji,jj,jk)))
-!!!                        ELSE
-!!!                        zthtw(ji,jj,jk) = 0.0_wp
-!!!                        END IF 
                      ELSE !2016-11-29 applied above change to salinity field
-!!!                        IF (fsavs(ji,jj,jk)>0.0_wp) THEN !2016-11-29 added conditional statement setting theta=0 everywhere vertical diffusion is 0 (e.g. land) to avoid singularity
                         zthtw(ji,jj,jk) = ( pwn(ji,jj,jk) /( e1t(ji,jj)*e2t(ji,jj)) ) / ( 2.0_wp * (1e-19_wp+fsavs(ji,jj,jk)))
-!!!                        ELSE
-!!!                        zthtw(ji,jj,jk) = 0.0_wp
-!!!                        END IF
                      ENDIF
                   END DO
                END DO
@@ -597,7 +557,7 @@ CONTAINS
          !    ====================
          !
 
-         IF (zr_ups_h < 0.0_wp) THEN !2017-03-24 co-efficients for weighted mean scheme !2017-05-18 corrected 'zr_ups_v' to 'zr_ups_h'
+         IF (zr_ups_h < 0.0_wp) THEN !2017-03-24 co-efficients for weighted mean scheme 
             
             DO jk = 1, jpkm1
                DO jj = 1, jpjm1

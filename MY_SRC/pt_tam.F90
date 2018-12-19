@@ -237,13 +237,14 @@ SUBROUTINE pt_adj
   erp_ad          = 0.0_wp
   emp_ad(:,:)     = 0.0_wp
   a_fwb_ad        = 0.0_wp
-!!!!!!
 
-  ! Variable allocation and initialisation
+!####################################################################################################
+!!! Read in passive tracer initial dye injection and initialise other variables
+
+! Variable allocation and initialisation
   CALL wrk_alloc(jpi,jpj,jpk,ztn_tlin)
   ztn_tlin(:,:,:) = 0.0_wp
   ! Reading in of initial perturbation
-  ! 2016-07-12 ported masking of initialisation from TLM (Tinit is initial distribution at start of adjoint run, ztn_tlin is the mask specified by .nc in namelist)
   CALL iom_open(cn_pttam_init,ncid,kiolib = jpnf90)
   CALL iom_get(ncid,jpdom_autoglo,"Tinit",ztn_tlin,0)
 
@@ -251,32 +252,15 @@ SUBROUTINE pt_adj
   CALL lbc_lnk(ztn_tlin(:,:,:), 'T', 1.0_wp)
 #endif
 
-  tmsk_region(:,:,:) = ztn_tlin(:,:,:)
+  tmsk_region(:,:,:) = ztn_tlin(:,:,:) !2018-12-19 This step is superfluous and should be removed from future versions
 
-!!!!!!! next part should be in step_tam?!
   tsn_ad(:,:,:,:) = 0.0_wp
-!!!later  IF (ln_tl_nasmw_auto) THEN             !!!2016-08-09 - added tmsk_i(:,:,_) to handling of initialisation
-!!!later     DO jk = 1, jpk
-!!!later        WHERE ((tsn(:,:,jk,jp_tem) >= 17.0_wp).AND.(tsn(:,:,jk,jp_tem) <= 19.0_wp))
-!!!later           tsn_ad(:,:,jk,jp_tem) = 1.0_wp*tmsk_i(:,:,jk)*e1t(:,:)*e2t(:,:)*fse3t(:,:,jk)
-!!!later           tsn_ad(:,:,jk,jp_sal) = 1.0_wp*tmsk_i(:,:,jk)*e1t(:,:)*e2t(:,:)*fse3t(:,:,jk)
-!!!later        END WHERE
-!!!later
-!!!later     END DO
-!!!later     WHERE ((tsn(:,:,1,jp_tem) >= 17.0_wp).AND.(tsn(:,:,1,jp_tem) <= 19.0_wp))
-!!!later        tsn_ad(:,:,1,jp_tem) = tsn_ad(:,:,1,jp_tem) + 1.0_wp*tmsk_i(:,:,1)*e1t(:,:)*e2t(:,:)*sshn(:,:)
-!!!later        tsn_ad(:,:,1,jp_sal) = tsn_ad(:,:,1,jp_sal) + 1.0_wp*tmsk_i(:,:,1)*e1t(:,:)*e2t(:,:)*sshn(:,:)
-!!!later     END WHERE
-!!!later  ELSE
      DO jk=1,jpk
         tsn_ad(:,:,jk,jp_tem) = 1.0_wp*tmsk_i(:,:,jk)*tmsk_region(:,:,jk)*e1t(:,:)*e2t(:,:)*fse3t(:,:,jk)
         tsn_ad(:,:,jk,jp_sal) = 1.0_wp*tmsk_i(:,:,jk)*tmsk_region(:,:,jk)*e1t(:,:)*e2t(:,:)*fse3t(:,:,jk)
      END DO
      tsn_ad(:,:,1,jp_tem) = tsn_ad(:,:,1,jp_tem)  +  1.0_wp*tmsk_i(:,:,1)*tmsk_region(:,:,1)*e1t(:,:)*e2t(:,:)*sshn(:,:)
      tsn_ad(:,:,1,jp_sal) = tsn_ad(:,:,1,jp_sal)  +  1.0_wp*tmsk_i(:,:,1)*tmsk_region(:,:,1)*e1t(:,:)*e2t(:,:)*sshn(:,:)
-!!!later  ENDIF
-
-!!! 2016-07-04 modified above code so IF was not nested inside WHERE
 
   un_ad(:,:,:)    = 0.0_wp
   vn_ad(:,:,:)    = 0.0_wp
@@ -286,6 +270,7 @@ SUBROUTINE pt_adj
   ub_ad(:,:,:)    = 0.0_wp
   vb_ad(:,:,:)    = 0.0_wp
   sshb_ad(:,:)    = 0.0_wp
+!####################################################################################################
 
   DO istep = nitend, nit000, -1
 
@@ -312,9 +297,6 @@ SUBROUTINE pt_adj
 
  CALL pt_tam_wri(nit000 - 1,1) !write to output file for initial step
 
-!!!later  CALL tl_trj_wri(nit000-1, 1)
-
-
 
 END SUBROUTINE pt_adj
 
@@ -324,10 +306,13 @@ SUBROUTINE pt_tam_wri( kstp , wri_swi )
   INTEGER, INTENT( in ) :: wri_swi
   INTEGER, INTENT( in ) :: kstp
   CHARACTER(LEN=132)::zfname
+
+!2018-12-19 Note: for future versions, use zicapprox approach to create generic PT conc./vol. variable and output instead
+!pt_conc,pt_vol and pt_vent_vol?
 IF (wri_swi==0) THEN
 
    WRITE(zfname, FMT='(A,I0.8,A)') 'PTTAM_output_', kstp, '.nc'
-
+   
    CALL iom_open(zfname, ncid, ldwrt=.TRUE., kiolib = jprstlib)
    CALL iom_rstput(kstp, kstp, ncid, 'tn_tl', tsn_tl(:,:,:,jp_tem))
    CALL iom_rstput(kstp, kstp, ncid, 'tb_tl', tsb_tl(:,:,:,jp_tem))
