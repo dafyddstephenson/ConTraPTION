@@ -12,10 +12,9 @@ This repository requires existing NEMO v3.4 (and NEMOTAM) installs. These can be
 
 `svn co https://forge.ipsl.jussieu.fr/nemo/svn/NEMO/releases/release-3.4`
 
-This provides the source code for the model and a reference configuration, on which the PT_TAM configuration should be based.
+This provides the source code for the model and reference configurations, on which the PT_TAM configuration should be based.
 
-For a first-time NEMO install, the user will need to set up their machine's architecture. This will either already exist somewhere inside `NEMOGCM/ARCH` (e.g. `ARCH/<DIR>/arch-<ARCHITECTURE>.fcm`) or will have to be created. Instructions for creating/modifying this file are found at:
-http://forge.ipsl.jussieu.fr/nemo/wiki/Users/ModelInstall#Setupyourarchitectureconfigurationfile.
+For a first-time NEMO install, the user will need to set up their machine's architecture. This will either already exist somewhere inside `NEMOGCM/ARCH` (e.g. `ARCH/<DIR>/arch-<ARCHITECTURE>.fcm`) or will have to be created. Instructions for creating/modifying this file are found [here](http://forge.ipsl.jussieu.fr/nemo/wiki/Users/ModelInstall#Setupyourarchitectureconfigurationfile).
 
 At this point, the PT_TAM configuration can be created. To do this, run the following command in the `CONFIG` directory:
 
@@ -29,9 +28,7 @@ This configuration can now be modified to include passive tracer-related subrout
 `./makenemo -n PT_TAM`
 
 ### Obtaining and linking forcing and other model input files
-In order to run NEMO-ORCA2, additional files are required, which can be found at
-
-https://prodn.idris.fr/thredds/catalog/ipsl_public/romr005/Online_forcing_archives/release-3.4/catalog.html?dataset=DatasetScanipsl_public/romr005/Online_forcing_archives/release-3.4/ORCA2_LIM_v3.4.tar
+In order to run NEMO-ORCA2, additional files are required, which can be found [here](https://prodn.idris.fr/thredds/catalog/ipsl_public/romr005/Online_forcing_archives/release-3.4/catalog.html?dataset=DatasetScanipsl_public/romr005/Online_forcing_archives/release-3.4/ORCA2_LIM_v3.4.tar).
 
 Unpack this archive into a directory named `ORCA2_INPUT`. This will be at the same level as your experiment directory and can be anywhere you choose.
 
@@ -81,7 +78,7 @@ Other options are detailled in [the NEMO 3.4 manual](http://forge.ipsl.jussieu.f
 ### Running the TAM:
 **Initial tracer distribution**:
 
-The file `PT_init.nc` is a plain text document describing the structure of the input NetCDF file for the model.
+The provided file `PT_init.nc` is a plain text document describing the structure of the input NetCDF file for the model.
 
 In the tangent-linear model, concentrations in `PT_init.nc` are propagated forward. In the adjoint model, the concentrations in `PT_init.nc` are automatically multiplied by the local domain volume to produce the volumetric cost function when the model is run backward. 
 
@@ -100,26 +97,25 @@ For the tangent-linear model, `nn_itend` should be set to the desired number of 
 
 - **namtrj**
   - `cn_dirtrj` should match that set in the trajectory namelist, specifying the location of the trajectory output.
-  - `nn_ittrjoffset`determines the start (end) point of tangent-linear (adjoint) runs, if it is desired to begin the run at a later point in the trajectory.
+  - `nn_ittrjoffset` determines the start (end) point of tangent-linear (adjoint) runs, if it is desired to begin the run at a later point in the trajectory.
 - **namtst\_tam**
   - `ln_swi_opatam` determines TAM mode. `200` for tangent-linear and `201` for adjoint.
 - **namtl_trj** These settings are not seen by PT\_TAM
 - **nampttam**
-  - `cn_pttam_init`Initial tracer distribution file
-  - `nn_pttam_out_freq`Frequency of output (15 time steps = 1d)
+  - `cn_pttam_init` is the initial tracer distribution file
+  - `nn_pttam_out_freq` is the desired frequency of output (15 time steps = 1d)
 - **namtra\_adv\_tam** Options for passive tracer advection scheme
   - `ln_traadv_cen2` 2nd order centred
-  - `ln_traadv_tvd` total variance diminishing (**NONLINEAR**)
+  - `ln_traadv_tvd` total variance diminishing (**NOTE: NONLINEAR**)
   - `rn_traadv_weight_h` balance between upwind and centred scheme (lateral advection)
   - `rn_traadv_weight_v` balance between upwind and centred scheme (centred advection)
 
 If `ln_traadv_tvd = .true.` then the advection scheme is the nonlinear model default. In this case, the adjoint model is no longer a true adjoint of the tangent-linear model.
 
-For `rn_traadv_weight_?`, a purely centred scheme is determined by value `0` and a purely upwind scheme by value `1`. If negative, then an automatic parameterisation decided by the _weighted mean_ scheme of Fiadeiro and Veronis (1977) is implemented.
+For `rn_traadv_weight_{h,v}`, a purely centred scheme is determined by value `0` and a purely upwind scheme by value `1`. If negative, then an automatic parameterisation decided by the _weighted mean_ scheme of Fiadeiro and Veronis (1977) is implemented.
 
 ### TAM output
-
-If using the provided submission script, the output files are stitched in space (after being split for parallel processing) using the `rebuild_nemo` tool, and concatenated in time using `ncrcat`. The final output file contains the following variables:
+The final output file, after stitching across mpp tiles (using `rebuild_nemo`) and through time (e.g. using `ncrcat`) contains the following variables:
 
 - `nav_lon` and `nav_lat` (2D longitude and latitude arrays for the grid)
 - `tn_tl` (tangent linear) or `tn_ad` (adjoint): a 4D (x,y,z,t) array describing the spatiotemporal distribution of passive tracer concentrations at the "now" points in the NEMOTAM time stepping procedure.
@@ -131,36 +127,43 @@ If using the provided submission script, the output files are stitched in space 
 - `tn` and `sn`: the temperature and salinity of the ocean background state at the point in the trajectory corresponding to the output. May be used, for example, to produce TS plots of tracer transformation.
 
 ## Modifications to model defaults
+
+There are three types of modifications present: bug fixes to model defaults (e.g. patching undeclared variables in `dynzdf_imp_tam.F90`), general updates for convenience (e.g. extending maximum run length) and modifications specific to passive tracer transport (e.g. bespoke passive tracer advection scheme)
+
 Passive tracer mode (`ln_swi_opatam` >200) is kept separate from the model's standard tangent-linear (`ln_swi_opatam = 2`) and adjoint (`ln_swi_opatam = 3`) modes, using a different set of routines, defined in `MY_SRC/pt_tam.f90`.
 
-### Standard modifications and bug fixes:
-- `domwri.F90`: argument `kindic` added to subroutine `dom_uniq`. `kindic` is used by the `oce_tam_init` routine to initialise TAM variables
-- `oce_tam.F90` building of `{t,u,v,f}msk_i` variables using `dom_uniq`
-- `dynzdf_imp_tam.F90` 
-- `trj_tam.F90`: Addition of routines `ad_trj_ini`, `ad_trj_wri` and variables for writing the adjoint trajectory 
+### NEMOTAM bug fixes:
+- `domwri.F90`: argument `kindic` added to subroutine `dom_uniq`. `kindic` is used by the `oce_tam_init` routine to initialise TAM variables (see following point)
+- `oce_tam.F90` building of `{t,u,v,f}msk_i` variables using `dom_uniq` (see http://forge.ipsl.jussieu.fr/nemo/ticket/1499)
+- `dynzdf_imp_tam.F90` (see [here](http://forge.ipsl.jussieu.fr/nemo/attachment/ticket/1362/dynzdf_imp_tam.F90.diff) ).
+- `trj_tam.F90`: 
+  - Addition of routines `ad_trj_ini`, `ad_trj_wri` and variables for writing the adjoint trajectory 
+  - Corrected trajectory time step reading in adjoint (see [here](http://forge.ipsl.jussieu.fr/nemo/attachment/ticket/1443/trj_tam.F90.diff) ).
+- `sbcmod_tam.F90`: removal of bug that forces default (GYRE configuration) surface boundary conditions, enabling flux boundary conditions (see [here] (http://forge.ipsl.jussieu.fr/nemo/attachment/ticket/1738/sbcmod_tam.F90.diff) ).
+  
+### General updates to NEMOTAM
+- `tamtrj.F90`
+  - `nn_ittrjoffset` parameter added, allowing TL runs to start later than the beginning of the trajectory
+  - `cl_dirtrj` variable, which sets output filenames and location is modified to support up to 100 million time steps (18ky) with a consistent filename structure (`PT_TAM_output_????????.nc`), or higher with modified filename structure.
+ - `trj_tam.F90`
+  - `cl_dirtrj` variable modified as in `tamtrj.F90` and similarly `cl_tantrj` and `cl_adjtrj`
+  - added SSH (`sshn`) to trajectory outputs
+  - Addition of `lreset` argument to `trj_rea` which "forgets" about previous internal state. This is used if moving to a point in the trajectory not anticipated by the model (e.g. a jump)
 
 ### Modifications for passive tracer model:
 
 - `sbcmod_tam.F90` handles surface boundary conditions. For `PT_TAM`
   - A new variable `sbc_tmp_rm`is defined **in the adjoint**, which holds the cumulative tracer removed at the surface (summed from the instantaneous variable `sst_m_ad` defined in the routine `sbc_ssr_adj`). In the tangent-linear, the surface removal scheme is handled by routine `pt_tan` in `pt_tam.F90`.
-  - the `nsbc` variable which chooses SBC type is forced to choose flux formulation
-- `tamtrj.F90`
-  - `nn_ittrjoffset` parameter added, allowing TL runs to start later than the beginning of the trajectory
-  - `cl_dirtrj` variable, which sets output filenames and location is modified to support up to 100 million time steps (18ky) with a consistent filename structure (`PT_TAM_output_????????.nc`), or higher with modified filename structure.
 - `nemogcm_tam.F90`
   - Added additional cases for `ln_swi_opatam` variable: values between 200 and 249 signal passive tracer mode, and the routines of `pt_tam.F90` take over.
-- `trj_tam.F90`
-  - `cl_dirtrj` variable modified as in `tamtrj.F90` and similarly `cl_tantrj` and `cl_adjtrj`
-  - added SSH (`sshn`) to trajectory outputs
 - `traadv_tam.F90`
   - Commented options for all nonlinear advection schemes except TVD
   - If any scheme other than TVD is selected, the 2nd order linear scheme is forced 
   - For `ln_traadv_cen2`, variables `rn_traadv_weight_h` and `rn_traadv_weight_v` are defined. Their values are written to the `ocean.output` file during the run. Routines `tra_adv_cen2_tan` or `tra_adv_cen2_tan` are called with their values.
 - `traadv_cen2_tam.F90`
-  - horizontal and vertical diffusion coefficients are now seen
+  - horizontal and vertical diffusion coefficients (from `ldftra_oce` and  `zdf_oce` are now seen by subroutines)
   - added variables `{p,z}r_ups_{h,v}` to determine weighting between centred and upstream schemes
   - Defined `zsgm{u,v,w}` and `ztht{u,v,w}`, the sigma and theta parameters of the Fiadeiro and Veronis (1977, p6) weighted mean advection scheme 
-  -  Added (later commented) ability to output the value of theta for debugging.
   - Added calculation of theta in u and v
   - Added calculation of sigma from theta. Sigma becomes the weighting parameter between centred and upwind.
   - Added similar calculations for vertical advection
