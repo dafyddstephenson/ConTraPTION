@@ -134,12 +134,12 @@ Passive tracer mode (`ln_swi_opatam` >200) is kept separate from the model's sta
 
 ### NEMOTAM bug fixes:
 - `domwri.F90`: argument `kindic` added to subroutine `dom_uniq`. `kindic` is used by the `oce_tam_init` routine to initialise TAM variables (see following point)
-- `oce_tam.F90` building of `{t,u,v,f}msk_i` variables using `dom_uniq` (see http://forge.ipsl.jussieu.fr/nemo/ticket/1499)
+- `oce_tam.F90` building of `{t,u,v,f}msk_i` variables using `dom_uniq` (see [here](http://forge.ipsl.jussieu.fr/nemo/ticket/1499) ).
 - `dynzdf_imp_tam.F90` (see [here](http://forge.ipsl.jussieu.fr/nemo/attachment/ticket/1362/dynzdf_imp_tam.F90.diff) ).
 - `trj_tam.F90`: 
   - Addition of routines `ad_trj_ini`, `ad_trj_wri` and variables for writing the adjoint trajectory 
   - Corrected trajectory time step reading in adjoint (see [here](http://forge.ipsl.jussieu.fr/nemo/attachment/ticket/1443/trj_tam.F90.diff) ).
-- `sbcmod_tam.F90`: removal of bug that forces default (GYRE configuration) surface boundary conditions, enabling flux boundary conditions (see [here] (http://forge.ipsl.jussieu.fr/nemo/attachment/ticket/1738/sbcmod_tam.F90.diff) ).
+- `sbcmod_tam.F90`: removal of bug that forces default (GYRE configuration) surface boundary conditions, enabling flux boundary conditions (see [here](http://forge.ipsl.jussieu.fr/nemo/attachment/ticket/1738/sbcmod_tam.F90.diff) ).
   
 ### General updates to NEMOTAM
 - `tamtrj.F90`
