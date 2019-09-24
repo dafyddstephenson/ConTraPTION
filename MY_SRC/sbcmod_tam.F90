@@ -44,7 +44,7 @@ MODULE sbcmod_tam
    USE sbcrnf
    USE sbcfwb_tam
    USE in_out_manager
-!!!LATER   USE pttam, ONLY: tmp_rm, sal_rm
+
 
    IMPLICIT NONE
    PRIVATE
@@ -93,7 +93,7 @@ CONTAINS
       !!----------------------------------------------------------------------
       IF (lfirst) THEN
 
-   ! 2017-04-25 Temporary installation of sbc_tmp_rm, may be replaced in the future
+   ! 2017-04-25 Ventilation of passive tracer
          IF (.NOT.ALLOCATED(sbc_tmp_rm))    ALLOCATE(sbc_tmp_rm(jpi,jpj))
          sbc_tmp_rm(:,:) = 0.0_wp
 
@@ -201,11 +201,10 @@ CONTAINS
       IF( nn_fwb  /= 0 )   CALL sbc_fwb_adj( kt, nn_fwb, nn_fsbc )  ! control the freshwater budget
       IF( ln_ssr       )   CALL sbc_ssr_adj( kt )                   ! add SST/SSS damping term
 
-!!!LATER      ! 2016-07-21 Diagnostics of removed tracer if nn_sstr is 1 can be found in module sbcmod_tam (deactivated); 2016-07-29 activated, replaced qrp_ad by sst_m_ad (?)
+
       IF (nn_sstr == 1) THEN
-   ! 2017-04-25 Temporary installation of sbc_tmp_rm, may be replaced in the future
+   ! 2017-04-25 Ventilation of passive tracer
          sbc_tmp_rm(:,:) = sbc_tmp_rm(:,:) - sst_m_ad(:,:) !sst_m_ad calculated in sbc_ssr_adj in sbcssr_tam.F90
-!!!LATER         tmp_rm(:,:) = tmp_rm(:,:) - sst_m_ad(:,:)!*rdttra(1)*ro0cpr*e1t(:,:)*e2t(:,:)
       END IF
 
 

@@ -469,7 +469,7 @@ CONTAINS
       !
       
       IF (zr_ups_h < 0.0_wp) THEN !!!2017-03-24 adding WM scheme to adjoint
-         CALL wrk_alloc(jpi, jpj, jpk, zthtu, zthtv) !perhaps uncomment this? (2017-03-08)
+         CALL wrk_alloc(jpi, jpj, jpk, zthtu, zthtv) 
       END IF
       IF (zr_ups_v <0.0_wp) THEN
          CALL wrk_alloc(jpi, jpj, jpk,  zthtw)
@@ -610,10 +610,10 @@ CONTAINS
       !
       CALL wrk_dealloc( jpi, jpj, jpk, zwzad, zwyad, zwxad )
       IF (zr_ups_h < 0.0_wp) THEN
-         CALL wrk_dealloc(jpi, jpj, jpk, zthtu, zthtv) !Perhaps uncomment this
+         CALL wrk_dealloc(jpi, jpj, jpk, zthtu, zthtv) 
       END IF
       IF (zr_ups_v < 0.0_wp) THEN
-         CALL wrk_dealloc(jpi, jpj, jpk, zthtw) !Perhaps uncomment this
+         CALL wrk_dealloc(jpi, jpj, jpk, zthtw)
       END IF      
 
       !

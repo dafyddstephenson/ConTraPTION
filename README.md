@@ -28,19 +28,19 @@ This configuration can now be modified to include passive tracer-related subrout
 `./makenemo -n PT_TAM`
 
 ### Obtaining and linking forcing and other model input files
-In order to run NEMO-ORCA2, additional files are required, which can be found [here](https://prodn.idris.fr/thredds/catalog/ipsl_public/romr005/Online_forcing_archives/release-3.4/catalog.html?dataset=DatasetScanipsl_public/romr005/Online_forcing_archives/release-3.4/ORCA2_LIM_v3.4.tar).
+In order to run NEMO-ORCA2, additional files are required, which can be found [here](https://doi.org/10.5281/zenodo.1471702).
 
 Unpack this archive into a directory named `ORCA2_INPUT`. This will be at the same level as your experiment directory and can be anywhere you choose.
 
 ### Creating an experiment directory
-At the same level as `ORCA2_INPUT`, create an experiment directory (e.g. `RUN_DIR`). Copy the contents of our template experiment directory into this directory. Use `cp -d` to preseve the relative symbolic links to the model input files.
+At the same level as `ORCA2_INPUT`, create an experiment directory (e.g. `RUN_DIR`). Copy the contents of our template experiment directory into this directory. The bash script `link_runfiles.sh` creates softlinks to all files necessary to run NEMO and NEMOTAM. Edit it to provide the location of your `ORCA2_INPUT` and `BLD/bin`.
 
 ### Directory structure
 
 You should now have a NEMO configuration with the following structure
 
 - `/home/username/NEMO/dev_v3_4_STABLE_2012/NEMOGCM/CONFIG/`
- - `PT_TAM/`
+  - `PT_TAM/`
     - `BLD/`
     - `MY_SRC/`
     - `WORK/`
@@ -49,20 +49,20 @@ You should now have a NEMO configuration with the following structure
 and an experiment area with the structure    
 
 - `/<PATH TO EXPERIMENT AREA>/`
- - `ORCA2_INPUT`
- - `RUN_DIR`
+  - `ORCA2_INPUT`
+  - `RUN_DIR`
 
 ## Running passive tracer experiments
 
 
 ### Spinning up
 To set up, the model should first be spun up from rest (ideally for around a thousand years) to provide a start point for all experiments.
-Inside `RUN_DIR` is a bash script `SPINUP_scriptmaker.sh`, which produces namelist files (and job submission scripts for the *mobilis* HPC system) for consecutive runs of 50 years (273750 model time steps) each. They can be tuned by editing `namelist.SPINUP_template` (and `SPINUP_template.sh` for *mobilis*).
+Inside `RUN_DIR/SPINUP_RUNS` is a bash script `make_spinup_namelists.sh`, which produces namelist files for consecutive runs of 50 years (273750 model time steps) each. They can be tuned by editing this script along with `namelist.SPINUP_template`.
 
 The end result should be the files `SPINUP_????????_restart.nc` and `SPINUP_????????_restart_ice.nc`, used as start points for the trajectory.
 
 ### Running a trajectory
-After spinning up, the non-linear model should be run for the desired length of the experiment. Parameters can be set in the file `namelist.TRAJ`.
+After spinning up, the non-linear model should be run for the desired length of the experiment. A script is provided (`RUN_DIR/TRAJECTORY_RUNS/make_trajectory_namelists.sh`) to produce ocean and ice namelists for consecutive 50 year trajectories adding up to 400 years. The namelist parameters themselves can be adjusted in `RUN_DIR/TRAJECTORY_RUNS/namelist.TRAJ_TEMPLATE` and `RUN_DIR/TRAJECTORY_RUNS/namelist_ice.TRAJ_TEMPLATE`.
 
 **At the beginning of the namelist file:**
 
@@ -78,7 +78,7 @@ Other options are detailled in [the NEMO 3.4 manual](http://forge.ipsl.jussieu.f
 ### Running the TAM:
 **Initial tracer distribution**:
 
-The provided file `PT_init.nc` is a plain text document describing the structure of the input NetCDF file for the model.
+The provided file `PT_init.py` is a Python script for generating initial passive tracer distributions and saving them to the netCDF file `PT_init.nc`, which the template namelist points to.
 
 In the tangent-linear model, concentrations in `PT_init.nc` are propagated forward. In the adjoint model, the concentrations in `PT_init.nc` are automatically multiplied by the local domain volume to produce the volumetric cost function when the model is run backward. 
 
@@ -115,15 +115,15 @@ If `ln_traadv_tvd = .true.` then the advection scheme is the nonlinear model def
 For `rn_traadv_weight_{h,v}`, a purely centred scheme is determined by value `0` and a purely upwind scheme by value `1`. If negative, then an automatic parameterisation decided by the _weighted mean_ scheme of Fiadeiro and Veronis (1977) is implemented.
 
 ### TAM output
-The final output file, after stitching across mpp tiles (using `rebuild_nemo`) and through time (e.g. using `ncrcat`) contains the following variables:
+If run in parallel, the model delegates parts of the grid to different CPUs. The output is thus returned in "tiles" as `PTTAM_output_<TIMESTEP>_????.nc`, which can be pieced together using `TOOLS/rebuild_nemo PTTAM_<TIMESTEP>_output <NO. OF TILES>`. Where the `TOOLS` directory is found at the same level as `CONFIG` (`../../TOOLS` from the install location of this repository). Each file contains the following variables:
 
 - `nav_lon` and `nav_lat` (2D longitude and latitude arrays for the grid)
-- `tn_tl` (tangent linear) or `tn_ad` (adjoint): a 4D (x,y,z,t) array describing the spatiotemporal distribution of passive tracer concentrations at the "now" points in the NEMOTAM time stepping procedure.
-- `tb_tl` (tangent-linear) or `tb_ad` (adjoint): as above, but for the "before" points in the time-stepping procedure. 
+- `pt_conc_tl` (tangent linear) or `pt_vol_ad` (adjoint): a 4D (x,y,z,t) array describing the spatiotemporal distribution of passive tracer concentrations (tangent-linear) or volumes (adjoint).
 
-**NOTE**: the total tracer _concentration_ distribution at any given point is the sum `tb_tl`+`tn_tl`. The volume can be calculated by producing a `mesh_mask` file (`nn_msh = 1` in the namelist file) and multiplying the concentrations by `e1t`,`e2t` and `e3t` (the grid dimensions).
 
-- `tmp_rm` a 3D (x,y,t) array describing the _cumulative_ removal of tracer at the surface during the run (needs to be differenced to produce a time series).
+**NOTE**: the tracer _concentration_ distribution is provided by the tangent-linear for mathematical consistency. The volume can be calculated by producing a `mesh_mask` file (`nn_msh = 1` in the namelist file) and multiplying the concentrations by `e1t`,`e2t` and `e3t` (the grid dimensions). The adjoint outputs volume automatically.
+
+- `pt_vent_tl` (tangent-linear) or `pt_vent_ad` (adjoint) a 3D (x,y,t) array describing the _cumulative_ removal of tracer at the surface during the run (needs to be differenced to produce a time series).
 - `tn` and `sn`: the temperature and salinity of the ocean background state at the point in the trajectory corresponding to the output. May be used, for example, to produce TS plots of tracer transformation.
 
 ## Modifications to model defaults

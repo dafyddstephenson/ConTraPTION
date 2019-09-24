@@ -32,8 +32,6 @@ MODULE traadv_tam
    USE lib_mpp
    USE wrk_nemo
    USE timing
-!!!later   ! 2016-05-16 Addition of EIV to background trajectory (optional)
-!!!later   USE traadv_eiv
    USE tamctl
 
    IMPLICIT NONE
@@ -47,11 +45,6 @@ MODULE traadv_tam
    !!* Namelist nam_traadv
    LOGICAL, PUBLIC ::   ln_traadv_cen2   = .TRUE.       ! 2nd order centered scheme flag
    LOGICAL, PUBLIC ::   ln_traadv_tvd    = .FALSE.      ! TVD scheme flag
-!!!later   LOGICAL, PUBLIC ::   ln_traadv_muscl  = .FALSE.      ! MUSCL scheme flag
-!!!later   LOGICAL, PUBLIC ::   ln_traadv_muscl2 = .FALSE.      ! MUSCL2 scheme flag
-!!!later   LOGICAL, PUBLIC ::   ln_traadv_ubs    = .FALSE.      ! UBS scheme flag
-!!!later   LOGICAL, PUBLIC ::   ln_traadv_qck    = .FALSE.      ! QUICKEST scheme flag
-!!!later   LOGICAL, PUBLIC ::   ln_traadv_tvdpt  = .FALSE. ! 2016-11-29 added TVD advection scheme as an option for passive tracer transport 
 
    REAL,    PUBLIC :: rn_traadv_weight_h = 0._wp
    REAL,    PUBLIC :: rn_traadv_weight_v = 0._wp
@@ -242,10 +235,8 @@ CONTAINS
       INTEGER ::   ioptio
       NAMELIST/namtra_adv_tam/ ln_traadv_cen2 , &
          & ln_traadv_tvd,    &
-!!!later         &                 ln_traadv_muscl, ln_traadv_muscl2, &
-!!!later         &                 ln_traadv_ubs  , ln_traadv_qck, &
          &                 rn_traadv_weight_h, rn_traadv_weight_v
-!!!later         &                 ln_traadv_tvdpt ! 2016-11-29 added TVD advection scheme as an option for passive tracer transport 
+
       
       !!----------------------------------------------------------------------
 
@@ -259,11 +250,6 @@ CONTAINS
          WRITE(numout,*) '       Namelist nam_traadv_tam : chose a advection scheme for tracers'
          WRITE(numout,*) '          2nd order advection scheme     ln_traadv_cen2   = ', ln_traadv_cen2
          WRITE(numout,*) '          TVD advection scheme           ln_traadv_tvd    = ', ln_traadv_tvd
-!!!later         WRITE(numout,*) '          MUSCL  advection scheme        ln_traadv_muscl  = ', ln_traadv_muscl
-!!!later         WRITE(numout,*) '          MUSCL2 advection scheme        ln_traadv_muscl2 = ', ln_traadv_muscl2
-!!!later         WRITE(numout,*) '          UBS    advection scheme        ln_traadv_ubs    = ', ln_traadv_ubs
-!!!later         WRITE(numout,*) '          QUICKEST advection scheme      ln_traadv_qck    = ', ln_traadv_qck
-!!!later         WRITE(numout,*) ' TVD advection scheme for passive tracer transport = ', ln_traadv_tvdpt ! 2016-11-29 added TVD advection scheme as an option for passive tracer transport 
          IF( rn_traadv_weight_h < 0.0_wp) THEN 
             WRITE(numout,*) '         Weighted-mean horizontal advection scheme selected '
          ELSE
@@ -280,11 +266,6 @@ CONTAINS
       ioptio = 0                      ! Parameter control
       IF( ln_traadv_cen2   )   ioptio = ioptio + 1
       IF( ln_traadv_tvd    )   ioptio = ioptio + 1
-!!!later      IF( ln_traadv_muscl  )   ioptio = ioptio + 1
-!!!later      IF( ln_traadv_muscl2 )   ioptio = ioptio + 1
-!!!later      IF( ln_traadv_ubs    )   ioptio = ioptio + 1
-!!!later      IF( ln_traadv_qck    )   ioptio = ioptio + 1
-!!!later      IF( ln_traadv_tvdpt  )   ioptio =   ioptio + 1
       IF( lk_esopa         )   ioptio =          1
 
       IF( ioptio /= 1 )   CALL ctl_stop( 'Choose ONE advection scheme in namelist nam_traadv' )
@@ -295,20 +276,12 @@ CONTAINS
       !                              ! Set nadv
       IF( ln_traadv_cen2   )   nadv =  1
       IF( ln_traadv_tvd    )   nadv =  2
-!!!later      ! IF( ln_traadv_muscl  )   nadv =  3
-!!!later      ! IF( ln_traadv_muscl2 )   nadv =  4
-!!!later      ! IF( ln_traadv_ubs    )   nadv =  5
-!!!later      ! IF( ln_traadv_qck    )   nadv =  6
       IF( lk_esopa         )   nadv = -1
 
       IF(lwp) THEN                   ! Print the choice
          WRITE(numout,*)
          IF( nadv ==  1 )   WRITE(numout,*) '         2nd order scheme is used'
          IF( nadv ==  2 )   WRITE(numout,*) '         TVD scheme: WARNING non-linear advection scheme selected'
-!!!later         IF( nadv ==  3 )   WRITE(numout,*) '         MUSCL     Not Available in NEMO TAM'
-!!!later         IF( nadv ==  4 )   WRITE(numout,*) '         MUSCL2    Not Available in NEMO TAM'
-!!!later         IF( nadv ==  5 )   WRITE(numout,*) '         UBS       Not Available in NEMO TAM'
-!!!later         IF( nadv ==  6 )   WRITE(numout,*) '         QUICKEST  Not Available in NEMO TAM'
          IF( nadv == -1 )   WRITE(numout,*) '         esopa test: Not Available in NEMO TAM'
       ENDIF
       !

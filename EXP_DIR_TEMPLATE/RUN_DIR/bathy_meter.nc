@@ -1,1 +1,0 @@
-../ORCA2_INPUT/bathy_meter.nc

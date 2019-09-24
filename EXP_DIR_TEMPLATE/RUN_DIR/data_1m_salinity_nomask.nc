@@ -1,1 +1,0 @@
-../ORCA2_INPUT/data_1m_salinity_nomask.nc

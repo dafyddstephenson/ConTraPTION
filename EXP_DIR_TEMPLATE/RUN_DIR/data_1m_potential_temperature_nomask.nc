@@ -1,1 +1,0 @@
-../ORCA2_INPUT/data_1m_potential_temperature_nomask.nc
