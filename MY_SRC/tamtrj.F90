@@ -182,9 +182,8 @@ CONTAINS
          !
          ! Define the output file
 !         WRITE(cl_dirtrj, FMT='(A,A,I5.5)' ) TRIM( cn_dirtrj ), '_', it 
-!         WRITE(cl_dirtrj, FMT='(A,A,I6.6)' ) TRIM( cn_dirtrj ), '_', it  !!!2017-05-01 ATTEMPTING TO USE 6 DIGIT TRAJECTORY
          WRITE(cl_dirtrj, FMT='(A,A,I0.8)' ) TRIM( cn_dirtrj ), '_', it 
- !!!2017-09-20 changing trajectory to min 8 digits, no max
+ !!!2017-09-20 changing trajectory filename time-steps to at least 8 digits
 
          cl_dirtrj = TRIM( cl_dirtrj )
 

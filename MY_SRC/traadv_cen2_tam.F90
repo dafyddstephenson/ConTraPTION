@@ -43,10 +43,6 @@ MODULE traadv_cen2_tam
    USE zdf_oce
 ! 2016-11-18: making diffusion co-efficients available (vertical)
 
-! 2016-11-22
-   USE iom
-   USE trj_tam, ONLY: nn_ittrjfrq_tan
-
    IMPLICIT NONE
    PRIVATE
 
@@ -346,7 +342,7 @@ CONTAINS
       CALL wrk_dealloc( jpi, jpj, ztfreez )
       CALL wrk_dealloc( jpi, jpj, jpk, zwztl, zwxtl, zwytl )
 
- !!!later     ! 2016-11-22 
+ !!! 2016-11-22 
       IF (zr_ups_h < 0.0_wp) THEN
          CALL wrk_dealloc(jpi, jpj, jpk, zthtu, zthtv) !Perhaps uncomment this
       END IF

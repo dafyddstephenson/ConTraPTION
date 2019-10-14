@@ -269,11 +269,8 @@ CONTAINS
          IF ( inumtrj1 == -1 ) THEN
 
             ! Define the input file
-! 2014-03-25 - SAM: allow time step number in input/output filenames to be >5
-!            WRITE(cl_dirtrj, FMT='(A,A,I6.6,".nc")' ) TRIM( cn_dirtrj ), '_', it
+!!!2017-09-20 changing filenames to allow at least 8 digit time-step
             WRITE(cl_dirtrj, FMT='(A,A,I0.8,".nc")' ) TRIM( cn_dirtrj ), '_', it
-!!!2017-09-20 changing filenames to min 8 digits, no max
-
             !         WRITE(cl_dirtrj, FMT='(A,".nc")' ) TRIM( c_dirtrj )
             cl_dirtrj = TRIM( cl_dirtrj )
 
@@ -433,13 +430,8 @@ CONTAINS
 
          IF ( ( kstp - nit000 + 1 /= 0 ) .AND. ( kdir == -1 ) ) THEN
             ! We update the input filename
-! 2014-03-25 - SAM: allow time step number in input/output filenames to be >5
-!            WRITE(cl_dirtrj, FMT='(A,A,I0.5,".nc")' ) TRIM(cn_dirtrj ), '_', (it-nn_ittrjfrq)
-!            WRITE(cl_dirtrj, FMT='(A,A,I6.6,".nc")' ) TRIM(cn_dirtrj ), '_', (it-nn_ittrjfrq)
-!!!2017-05-01 copied filename format from previous configuration
-
+!!!2017-09-20 changing filename time-steps to at least 8 digits
             WRITE(cl_dirtrj, FMT='(A,A,I0.8,".nc")' ) TRIM(cn_dirtrj ), '_', (it-nn_ittrjfrq)
-            !!!2017-09-20 changing filnemaes to min 8 digits, no max
 
             cl_dirtrj = TRIM( cl_dirtrj )
             IF(lwp) THEN
@@ -470,10 +462,8 @@ CONTAINS
 ! 2014-06-29 .OR. &
 ! 2014-06-29                & PRESENT(lreset) ) THEN
                ! Define the input file
-! 2014-03-25 - SAM: allow time step number in input/output filenames to be >5
-!               WRITE(cl_dirtrj, FMT='(A,A,I6.6,".nc")' ) TRIM( cn_dirtrj ), '_', it
+               !!!2017-09-20 changed filenames to allow at least 8 digit time-steps
                WRITE(cl_dirtrj, FMT='(A,A,I0.8,".nc")' ) TRIM( cn_dirtrj ), '_', it
-               !!!2017-09-20 changed filename structure - min 8 digits, no max
 
                cl_dirtrj = TRIM( cl_dirtrj )
 
@@ -593,16 +583,11 @@ CONTAINS
 
                ! Define the input file
                IF  (  kdir == -1   ) THEN
-! 2014-03-25 - SAM: allow time step number in input/output filenames to be >5
-!                   WRITE(cl_dirtrj, FMT='(A,A,I6.6,".nc")' ) TRIM( cn_dirtrj ), '_', it
+                   !!!2017-09-20 changed filenames to allow at least 8-digit time-steps
                    WRITE(cl_dirtrj, FMT='(A,A,I0.8,".nc")' ) TRIM( cn_dirtrj ), '_', it
-                   !!!2017-09-20 changed filename structure, min 8 digits, no max
                ELSE
-! 2014-03-25 - SAM: allow time step number in input/output filenames to be >5
-!                  WRITE(cl_dirtrj, FMT='(A,A,I6.6,".nc")' ) TRIM( cn_dirtrj ), '_', (it+nn_ittrjfrq)
+                   !!!2017-09-20 changed filenames to allow at least 8-digit time-steps
                   WRITE(cl_dirtrj, FMT='(A,A,I0.8,".nc")' ) TRIM( cn_dirtrj ), '_', (it+nn_ittrjfrq)
-                  !!!2017-09-20 changed filename structure, min 8 digits, no max
-
                ENDIF
                cl_dirtrj = TRIM( cl_dirtrj )
 
@@ -931,10 +916,8 @@ CONTAINS
          it = kstp - nit000 + 1
 
             ! Define the input file
-! 2014-03-25 - SAM: allow time step number in input/output filenames to be >5
-!            WRITE(cl_tantrj, FMT='(I6.6, A,A,".nc")' ) it, '_', TRIM( cn_tantrj )
+            !!!2017-09-20 changed filenames to allow at least 8 digit time-steps
             WRITE(cl_tantrj, FMT='(I0.8, A,A,".nc")' ) it, '_', TRIM( cn_tantrj )
-            !!!2017-09-20 changed filename structure - min 8 digits, no max
 
             cl_tantrj = TRIM( cl_tantrj )
 
@@ -1006,11 +989,8 @@ CONTAINS
          it = kstp - nit000 + 1
 
             ! Define the input file
-! 2014-03-25 - SAM: allow time step number in input/output filenames to be >5#
-
-!            WRITE(cl_adjtrj, FMT='(I6.6, A,A,".nc")' ) it, '_', TRIM( cn_adjtrj )
+            !!! 2017-09-20 changed filenames to allow at least 8 digit time-steps
             WRITE(cl_adjtrj, FMT='(I0.8, A,A,".nc")' ) it, '_', TRIM( cn_adjtrj )
-            !!! 2017-09-20 changed filename structure - min 8 digits, max 8 digits 
 
             cl_adjtrj = TRIM( cl_adjtrj )
 

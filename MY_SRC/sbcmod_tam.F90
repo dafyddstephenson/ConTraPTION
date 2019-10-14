@@ -63,7 +63,7 @@ MODULE sbcmod_tam
    INTEGER ::   nice   ! type of ice in the surface boundary condition (deduced from namsbc informations)
    LOGICAL, SAVE :: lfirst = .TRUE. ! initialisation flag
 
-   ! 2017-04-25 Temporary installation of sbc_tmp_rm, may be replaced in the future
+   ! 2017-04-25 to output ventilation record of passive tracer
    REAL(wp), PUBLIC, ALLOCATABLE, SAVE, DIMENSION(:,:):: sbc_tmp_rm
 
    !! * Substitutions

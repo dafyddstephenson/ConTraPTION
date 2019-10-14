@@ -7,7 +7,7 @@ MODULE pttam
   USE oce
   USE oce_tam
   USE sbc_oce_tam
-  USE sbc_oce, ONLY:rnf_b !!! 2017-03-24 temporary fix to avoid problems with uninitialised field rnf_b
+  USE sbc_oce, ONLY:rnf_b !!! 2017-03-24 fix to avoid problems with uninitialised field rnf_b
   USE sol_oce_tam
   USE tamctl
   USE iom
@@ -38,7 +38,6 @@ MODULE pttam
   REAL(KIND=wp), POINTER, DIMENSION(:,:,:) :: ztn_tlin
   INTEGER:: ncid
 
-  ! 2016-06-21 added global mask used to select region
 
   REAL(wp), PUBLIC, ALLOCATABLE, SAVE, DIMENSION(:,:):: tmp_rm,sal_rm !: 2017-03-24  mean tracer volume removed in top layer
   PUBLIC pt_init 
@@ -67,8 +66,8 @@ CONTAINS
     tmp_rm(:,:) = 0._wp
     sal_rm(:,:) = 0._wp !2017-03-24 storage surface removal of tracer by damping
 
-    !!! 2017-03-24 temporary fix to avoid problems with uninitialised field rnf_b
-                  !temporarily force flux boundary condition
+    !!! 2017-03-24 fix to avoid problems with uninitialised field rnf_b
+                  ! force flux boundary condition
     rnf_b(:,:) = 0.0_wp
 
   END SUBROUTINE pt_init
@@ -95,8 +94,6 @@ CONTAINS
 
     INTEGER::istep
 
-!    CHARACTER(LEN=132)::zfname !moved to other subroutine 2017-03-03
-    
     ! Initialisation as in test subroutine of OPATAM_SRC/step.F90
     CALL     oce_tam_init(1)
     CALL sbc_oce_tam_init(1)
