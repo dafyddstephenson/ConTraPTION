@@ -33,6 +33,10 @@ MODULE traadv_tam
    USE wrk_nemo
    USE timing
    USE tamctl
+!!! 20191223 (20191004W) - addition of EIV to trajectory fields
+   USE traadv_eiv
+!!! /20191223
+
 
    IMPLICIT NONE
    PRIVATE
@@ -43,6 +47,11 @@ MODULE traadv_tam
    PUBLIC   tra_adv_adj_tst ! routine called by tst module
 
    !!* Namelist nam_traadv
+
+   !20191223 - (20191004W) adding EIV to velocity fields
+   LOGICAL :: ln_tl_eiv
+   !/20191223
+
    LOGICAL, PUBLIC ::   ln_traadv_cen2   = .TRUE.       ! 2nd order centered scheme flag
    LOGICAL, PUBLIC ::   ln_traadv_tvd    = .FALSE.      ! TVD scheme flag
 
@@ -105,6 +114,17 @@ CONTAINS
       zvntl(:,:,jpk) = 0._wp                                                     ! no transport trough the bottom
       zwntl(:,:,jpk) = 0._wp                                                     ! no transport trough the bottom
       !
+
+!!! 20191223 (20191004W) - addition of EIV to trajectory velocity      
+      IF (ln_tl_eiv) THEN
+      ! next two lines are a copy of the corresponding call from file OPA_SRC/TRA/traadv.F90 (lines 96 and 97)
+      IF( lk_traldf_eiv .AND. .NOT. ln_traldf_grif )   &
+         &              CALL tra_adv_eiv( kt, nit000, zun, zvn, zwn, 'TRA' )
+      END IF 
+!!! /20191004W
+
+
+
       IF ( kt == nit000 ) THEN
          ! 2016-11-29 added TVD advection scheme as an option for passive tracer transport 
          IF (ln_traadv_tvd) THEN
@@ -169,6 +189,16 @@ CONTAINS
       zvn(:,:,jpk) = 0._wp                                                     ! no transport trough the bottom
       zwn(:,:,jpk) = 0._wp                                                     ! no transport trough the bottom
       !
+
+!!! 20191223 (20191004W) - incorporate EIV into trajectory velocity fields
+      IF (ln_tl_eiv) THEN
+      ! the next lines are a copy of the corresponding call from file OPA_SRC/TRA/traadv.F90 (lines 96 and 97)
+      IF( lk_traldf_eiv .AND. .NOT. ln_traldf_grif )   &
+         &              CALL tra_adv_eiv( kt, nit000, zun, zvn, zwn, 'TRA' )
+      END IF
+!!! /20191223
+
+
       IF ( kt == nitend ) THEN
          IF(lwp) WRITE(numout,*) ' tra_adv_tam: 2nd order scheme is forced in TAM'
          nadv = 1 ! force tra_adv_cen2 for adjoint
@@ -235,6 +265,7 @@ CONTAINS
       INTEGER ::   ioptio
       NAMELIST/namtra_adv_tam/ ln_traadv_cen2 , &
          & ln_traadv_tvd,    &
+         & ln_tl_eiv,        &
          &                 rn_traadv_weight_h, rn_traadv_weight_v
 
       
