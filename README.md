@@ -105,8 +105,9 @@ For the tangent-linear model, `nn_itend` should be set to the desired number of 
   - `cn_pttam_init` is the initial tracer distribution file
   - `nn_pttam_out_freq` is the desired frequency of output (15 time steps = 1d)
 - **namtra\_adv\_tam** Options for passive tracer advection scheme
-  - `ln_traadv_cen2` 2nd order centred
-  - `ln_traadv_tvd` total variance diminishing (**NOTE: NONLINEAR**)
+  - `ln_tl_eiv` include eddy-induced velocity (T) or not (F)
+  - `ln_traadv_cen2` 2nd order centred scheme
+  - `ln_traadv_tvd` total variance diminishing scheme (**NOTE: NONLINEAR**)
   - `rn_traadv_weight_h` balance between upwind and centred scheme (lateral advection)
   - `rn_traadv_weight_v` balance between upwind and centred scheme (centred advection)
 
@@ -149,6 +150,8 @@ Passive tracer mode (`ln_swi_opatam` >200) is kept separate from the model's sta
   - `cl_dirtrj` variable modified as in `tamtrj.F90` and similarly `cl_tantrj` and `cl_adjtrj`
   - added SSH (`sshn`) to trajectory outputs
   - Addition of `lreset` argument to `trj_rea` which "forgets" about previous internal state. This is used if moving to a point in the trajectory not anticipated by the model (e.g. a jump)
+- `traadv_tam.F90`
+  - `ln_tl_eiv` parameter added, allowing eddy-induced velocity for tracer advection
 
 ### Modifications for passive tracer model:
 
