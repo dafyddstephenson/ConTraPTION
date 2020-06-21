@@ -1,6 +1,12 @@
-BLD/
-WORK/
-EXP00/
-cpp_*.fcm
+*_OLD
 *~
+IGNORE
+CHANGES_*
+BLD
+WORK
+EXP00
+MY_SRC/ARCHIVE
+MY_SRC/NOTES
 \#*
+cpp_*.fcm
+cpp_keys.txt
