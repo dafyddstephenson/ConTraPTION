@@ -1,3 +1,6 @@
+!!! 20191004I - by SAM - essential modifications throughout for NEMOTAM operation
+! See details and diffs at http://forge.ipsl.jussieu.fr/nemo/attachment/ticket/1362/dynzdf_imp_tam.F90.diff
+!!! /20191004I
 MODULE dynzdf_imp_tam
 #if defined key_tam
    !!==============================================================================

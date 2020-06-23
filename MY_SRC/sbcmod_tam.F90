@@ -1,3 +1,4 @@
+!
 MODULE sbcmod_tam
 #ifdef key_tam
    !!======================================================================
@@ -45,7 +46,6 @@ MODULE sbcmod_tam
    USE sbcfwb_tam
    USE in_out_manager
 
-
    IMPLICIT NONE
    PRIVATE
 
@@ -62,10 +62,9 @@ MODULE sbcmod_tam
    INTEGER ::   nsbc   ! type of surface boundary condition (deduced from namsbc informations)
    INTEGER ::   nice   ! type of ice in the surface boundary condition (deduced from namsbc informations)
    LOGICAL, SAVE :: lfirst = .TRUE. ! initialisation flag
-
-   ! 2017-04-25 to output ventilation record of passive tracer
+!!! 20191004Q - output ventilation record of passive tracer
    REAL(wp), PUBLIC, ALLOCATABLE, SAVE, DIMENSION(:,:):: sbc_tmp_rm
-
+!!! /20191004Q
    !! * Substitutions
 #  include "domzgr_substitute.h90"
    !!----------------------------------------------------------------------
@@ -92,10 +91,10 @@ CONTAINS
       !!
       !!----------------------------------------------------------------------
       IF (lfirst) THEN
-
-   ! 2017-04-25 Ventilation of passive tracer
+!!! 20191004Q - output record of passive tracer ventilation
          IF (.NOT.ALLOCATED(sbc_tmp_rm))    ALLOCATE(sbc_tmp_rm(jpi,jpj))
          sbc_tmp_rm(:,:) = 0.0_wp
+!!! /20191004Q
 
          !CALL sbc_init
          IF( nn_ice == 0  )   fr_i_tl(:,:) = 0.e0       ! no ice in the domain, ice fraction is always zero
@@ -132,9 +131,9 @@ CONTAINS
       ! sbc formulation
       ! ---------------
 
-      ! 2016-05-24: force flux surface-boundary condition
+!!! 20191004O: (SAM) force flux surface-boundary condition, c.f. http://forge.ipsl.jussieu.fr/nemo/attachment/ticket/1738/sbcmod_tam.F90.diff
       nsbc = 2
-
+!!! /20191004O
       SELECT CASE( nsbc )                        ! Compute ocean surface boundary condition
       !                                          ! (i.e. utau,vtau, qns, qsr, emp, emps)
       CASE(  0 )   ;   CALL sbc_gyre_tan    ( kt )      ! analytical formulation : GYRE configuration
@@ -201,12 +200,11 @@ CONTAINS
       IF( nn_fwb  /= 0 )   CALL sbc_fwb_adj( kt, nn_fwb, nn_fsbc )  ! control the freshwater budget
       IF( ln_ssr       )   CALL sbc_ssr_adj( kt )                   ! add SST/SSS damping term
 
-
       IF (nn_sstr == 1) THEN
-   ! 2017-04-25 Ventilation of passive tracer
+!!! 20191004Q - output ventilation of passive tracer
          sbc_tmp_rm(:,:) = sbc_tmp_rm(:,:) - sst_m_ad(:,:) !sst_m_ad calculated in sbc_ssr_adj in sbcssr_tam.F90
+!!! /20191004Q
       END IF
-
 
 
       SELECT CASE( nn_ice )                                     ! Update heat and freshwater fluxes over ice-covered areas
@@ -219,9 +217,10 @@ CONTAINS
       ! sbc formulation
       ! ---------------
 
-      ! 2016-05-24: force flux surface-boundary condition
-      nsbc = 2
 
+!!! 20191004O: (SAM) force flux surface-boundary condition, c.f. http://forge.ipsl.jussieu.fr/nemo/attachment/ticket/1738/sbcmod_tam.F90.diff
+      nsbc = 2
+!!! /20191004O
       SELECT CASE( nsbc )                        ! Compute ocean surface boundary condition
       !                                          ! (i.e. utau,vtau, qns, qsr, emp, emps)
       CASE(  0 )   ;   CALL sbc_gyre_adj    ( kt )      ! analytical formulation : GYRE configuration

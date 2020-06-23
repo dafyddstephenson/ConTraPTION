@@ -1,3 +1,4 @@
+!
 MODULE tamtrj
    !!======================================================================
    !!                       ***  MODULE tamtrj  ***
@@ -34,7 +35,7 @@ MODULE tamtrj
    USE dom_oce
    USE iom                 ! I/O module
    USE zdfmxl
-
+   !USE pttam, ONLY: rn_SWptlat, rn_SWptlon, rn_NEptlat, rn_NEptlon, ln_pt_regional
    IMPLICIT NONE
 
    !! * Routine accessibility
@@ -52,8 +53,23 @@ MODULE tamtrj
       & cn_dirtrj                                  !: Filename for storing the
                                                    !: reference trajectory
    INTEGER, PUBLIC :: &
-      & nn_ittrjfrq, &     !: Frequency of trajectory output for 4D-VAR
+      & nn_ittrjfrq, &         !: Frequency of trajectory output for 4D-VAR
+!!! 20191004R - trajectory offsetting
       & nn_ittrjoffset
+!!! /20191004R
+!!! 20200622A - allowing differing timestep between NL and TAM
+   REAL(wp), PUBLIC :: rn_rdttrj = 3600._wp !default to TAM timestep
+!!! /20200622A
+
+!!!20191013A - selective, region-based trajectory I/O
+   LOGICAL, PUBLIC :: ln_pt_regional =.false.
+   REAL(wp), PUBLIC :: rn_SWptlat =  -90.0_wp
+   REAL(wp), PUBLIC :: rn_NEptlat =   90.0_wp
+   REAL(wp), PUBLIC :: rn_SWptlon = -180.0_wp
+   REAL(wp), PUBLIC :: rn_NEptlon =  180.0_wp
+   
+!!!/20191013A
+
 
 CONTAINS
    SUBROUTINE tam_trj_init
@@ -76,13 +92,41 @@ CONTAINS
       IMPLICIT NONE
 
       !! * Modules used
-      NAMELIST/namtrj/ nn_ittrjfrq, ln_trjhand, cn_dirtrj, ln_trj_spl, nn_ittrjoffset
-
+      NAMELIST/namtrj/ nn_ittrjfrq, ln_trjhand, cn_dirtrj, ln_trj_spl, &
+!!! 20191004R - trajectory offsetting
+      & nn_ittrjoffset, &
+!!! /20191004R
+!!! 20200622A - allowing differing timestep between NL (trajectory run) and TAM
+      & rn_rdttrj ! note, not actually used here. see tam_trj.F90
+!!! /20200622A 
       cn_dirtrj   = 'tam_trajectory'
       ln_trjhand = .FALSE.
       nn_ittrjfrq = 1
       ln_trj_spl  = .TRUE.
+!!! 20191004R - trajectory offsetting
       nn_ittrjoffset = 0
+!!! /20191004R
+
+!!!20191013A - Selective, region-based trajectory I/O for passive tracer transport
+      NAMELIST/nampttam/ln_pt_regional, rn_SWptlat, rn_NEptlat, rn_SWptlon, rn_NEptlon
+      
+      ln_pt_regional = .false.
+      rn_SWptlat =  -90.0_wp
+      rn_NEptlat =   90.0_wp
+      rn_SWptlon = -180.0_wp
+      rn_NEptlon =  180.0_wp
+      
+
+      REWIND(numnam)
+      READ(numnam, nampttam)
+
+      IF (lwp) THEN
+       WRITE(numout,*) "pttam - regional passive tracer transport only:", ln_pt_regional
+       WRITE(numout,*) "Region boundaries: northeast (lat,lon):" , rn_NEptlat, rn_NEptlon
+       WRITE(numout,*) "Region boundaries: southwest (lat,lon):" , rn_SWptlat, rn_SWptlon
+    END IF
+!!!/20191013A      
+
 
       REWIND ( numnam )
       READ   ( numnam, namtrj )
@@ -99,8 +143,15 @@ CONTAINS
             &            ' ln_trj_spl  = ', ln_trj_spl
          WRITE(numout,*) '             Frequency of trajectory output (or input for TAM)                          ', &
             &            ' nn_ittrjfrq = ', nn_ittrjfrq
+!!! 20191004R - trajectory offsetting
          WRITE(numout,*) '             Offset used in labelling trajectory output ', &
             &            ' nn_ittrjoffset = ', nn_ittrjoffset
+!!! /20191004R
+!!! 20200622A - differing step between NL and TAM
+         WRITE(numout,*) '             Time step size used to create trajectory  ', &
+            &            ' rn_rdttrj = ', rn_rdttrj
+!!! /20200622A
+
       END IF
    END SUBROUTINE tam_trj_init
    SUBROUTINE tam_trj_wri( kt )
@@ -178,15 +229,30 @@ CONTAINS
 #endif
          ENDIF
          !
+!!! 20191004R - trajectory offsetting
+         !it = kt - nit000 + 1
          it = kt - nit000 + 1 + nn_ittrjoffset
+!!! /20191004R
          !
          ! Define the output file
-!         WRITE(cl_dirtrj, FMT='(A,A,I5.5)' ) TRIM( cn_dirtrj ), '_', it 
+
+!!!20191013A - only write trajectory on first time step or in region of interest
+      IF (    (ln_pt_regional == .FALSE.) .OR. &
+           & ( &
+           &   (ANY( (gphit < rn_NEptlat ) .AND. ( gphit > rn_SWptlat )) &
+           & .AND. &
+           & ANY( (glamt > rn_SWptlon ) .AND. (glamt < rn_NEptlon )) ) & 
+           & .OR. &
+           & ( it == nn_ittrjoffset ) &
+           & ) &
+           & ) THEN
+!!!/20191013
+!!!20191004D expanding filenames to allow longer runs
+         !WRITE(cl_dirtrj, FMT='(I5.5,A,A)' ) it, '_', TRIM( cn_dirtrj )
          WRITE(cl_dirtrj, FMT='(A,A,I0.8)' ) TRIM( cn_dirtrj ), '_', it 
- !!!2017-09-20 changing trajectory filename time-steps to at least 8 digits
+!!!/20191004D
 
          cl_dirtrj = TRIM( cl_dirtrj )
-
          CALL iom_open( cl_dirtrj, inum, ldwrt = .TRUE., kiolib = jprstlib)
 
          ! Output trajectory fields
@@ -196,8 +262,9 @@ CONTAINS
          CALL iom_rstput( it, it, inum, 'vn'    , vn    , ktype = ntype )
          CALL iom_rstput( it, it, inum, 'tn'    , tsn(:,:,:,jp_tem)    , ktype = ntype )
          CALL iom_rstput( it, it, inum, 'sn'    , tsn(:,:,:,jp_sal)    , ktype = ntype )
-! 2017-05-04 Added 'sshn' to trajectory
+!!! 20191004C added sshn to trajectory
          CALL iom_rstput( it, it, inum, 'sshn'  , sshn  , ktype = ntype )
+!!! /20191004C
          CALL iom_rstput( it, it, inum, 'avmu'  , avmu  , ktype = ntype )
          CALL iom_rstput( it, it, inum, 'avmv'  , avmv  , ktype = ntype )
          CALL iom_rstput( it, it, inum, 'avt'   , avt   , ktype = ntype )
@@ -222,8 +289,11 @@ CONTAINS
          CALL iom_rstput( it, it, inum, 'aeiw'  , aeiw, ktype = ntype )
 
          CALL iom_close( inum )
+!!!20191013A - regional trajectory IO
+      END IF
+!!!/20191013A
 
-      ENDIF
+   ENDIF
 
-   END SUBROUTINE tam_trj_wri
+ END SUBROUTINE tam_trj_wri
 END MODULE tamtrj

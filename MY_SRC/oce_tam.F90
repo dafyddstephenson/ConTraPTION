@@ -1,3 +1,6 @@
+!!! 20191004N - essential modifications throughout: building of {t,u,v,f}msk_i variables using dom_uniq
+!See also http://forge.ipsl.jussieu.fr/nemo/ticket/1499
+!!! /20191004N
 MODULE oce_tam
    !!----------------------------------------------------------------------
    !!    This software is governed by the CeCILL licence (Version 2)

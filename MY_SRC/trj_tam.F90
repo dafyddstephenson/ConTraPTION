@@ -1,3 +1,5 @@
+!MODIFICATIONS
+! 20191013A - modifications to only read trajectory from tiles of interest 
 MODULE trj_tam
 #ifdef key_tam
    !!======================================================================
@@ -27,7 +29,11 @@ MODULE trj_tam
    USE divcur             ! horizontal divergence and relative vorticity
    USE sshwzv
    USE oce_tam
-
+   !!! 20191004B - by SAM - combining before and now variables into one output
+   USE eosbn2
+   USE lbclnk_tam
+   USE wrk_nemo 
+   !!! /20191004B
    IMPLICIT NONE
 
    !! * Routine accessibility
@@ -40,27 +46,48 @@ MODULE trj_tam
       & tl_trj_ini,  &   !: initialize the model-tangent state trajectory
       & trj_deallocate   !: Deallocate all the saved variable
 
-! 2014-01-13 - SAM
-   PUBLIC ad_trj_ini, ad_trj_wri
-
    LOGICAL, PUBLIC :: &
-      & ln_trjwri_tan = .FALSE.   !: No output of the state trajectory fields
+      & ln_trjwri_tan = .FALSE., &   !: No output of the state trajectory fields
+!!!20200623A - tam input switches
+      & ln_tam_in_t    = .FALSE., &
+      & ln_tam_in_s    = .FALSE., &
+      & ln_tam_in_u    = .FALSE., &
+      & ln_tam_in_v    = .FALSE., &
+      & ln_tam_in_w    = .FALSE., &
+      & ln_tam_in_ssh  = .FALSE., &
+      & ln_tam_in_hdiv = .FALSE., &
+      & ln_tam_in_rot  = .FALSE., &
+      & ln_tam_in_rhd  = .FALSE., &
+      & ln_tam_in_rhop = .FALSE., &
+!/20200623A
+!!!20200617A - TAM output switches
+      & ln_tam_out_t    = .FALSE., &
+      & ln_tam_out_s    = .FALSE., &
+      & ln_tam_out_u    = .FALSE., &
+      & ln_tam_out_v    = .FALSE., &
+      & ln_tam_out_w    = .FALSE., &
+      & ln_tam_out_ssh  = .FALSE., &
+      & ln_tam_out_hdiv = .FALSE., &
+      & ln_tam_out_rot  = .FALSE., &
+      & ln_tam_out_rhd  = .FALSE., &
+      & ln_tam_out_rhop = .FALSE., &
 
-! 2014-01-13 - SAM 
-   LOGICAL, PUBLIC :: ln_trjwri_adj = .FALSE.
-
+      & ln_trj_out_t    = .FALSE., &
+      & ln_trj_out_s    = .FALSE., &
+      & ln_trj_out_u    = .FALSE., &
+      & ln_trj_out_v    = .FALSE., &
+      & ln_trj_out_w    = .FALSE., &
+      & ln_trj_out_ssh  = .FALSE., &
+      & ln_trj_out_hdiv = .FALSE., &
+      & ln_trj_out_rot  = .FALSE., &
+      & ln_trj_out_rhd  = .FALSE., &
+      & ln_trj_out_rhop = .FALSE.
+!/20200617A
    CHARACTER (LEN=40), PUBLIC :: &
       & cn_tantrj                                  !: Filename for storing the
                                                    !: linear-tangent trajectory
-! 2014-01-13 - SAM
-   CHARACTER (LEN=40), PUBLIC :: cn_adjtrj
-
    INTEGER, PUBLIC :: &
       & nn_ittrjfrq_tan         !: Frequency of trajectory output for linear-tangent
-
-! 2014-01-13 - SAM
-! 2015-02-14 - SAM (re-added nn_ittrj0_adj on 2015-03-03 as inadvertantly deleted previous version)
-   INTEGER, PUBLIC :: nn_ittrjfrq_adj, nn_ittrj0_adj
 
    !! * Module variables
    LOGICAL, SAVE :: &
@@ -125,9 +152,10 @@ MODULE trj_tam
   REAL(wp), ALLOCATABLE, DIMENSION(:,:), SAVE :: &
       & hmlp1,    &
       & hmlp2,    &
-      & sshnr1,   & !
-      & sshnr2      ! 
-!!!2017-05-04 Added 'sshn' to trajectory
+!!! 20191004C add 'sshn' to nonlinear trajectory
+      & sshnr1,   & 
+      & sshnr2
+!!! /20191004C
 
 CONTAINS
 
@@ -151,8 +179,25 @@ CONTAINS
       IMPLICIT NONE
 
       !! * Modules used
-      NAMELIST/namtl_trj/ nn_ittrjfrq_tan, ln_trjwri_tan, cn_tantrj
-
+      NAMELIST/namtl_trj/ nn_ittrjfrq_tan, ln_trjwri_tan, cn_tantrj,          &
+!!!20200617A - TAM output switches
+           &              ln_tam_out_t   , ln_tam_out_s   , ln_tam_out_u   ,  &
+           &              ln_tam_out_v   , ln_tam_out_w   , ln_tam_out_ssh ,  &
+           &              ln_tam_out_hdiv, ln_tam_out_rot ,                   & 
+           &              ln_tam_out_rhd , ln_tam_out_rhop,                   &
+!/20200617A
+!!!20200623A - TAM input switches
+           &              ln_tam_in_t   , ln_tam_in_s   , ln_tam_in_u   ,  &
+           &              ln_tam_in_v   , ln_tam_in_w   , ln_tam_in_ssh ,  &
+           &              ln_tam_in_hdiv, ln_tam_in_rot ,                   & 
+           &              ln_tam_in_rhd , ln_tam_in_rhop,                   &
+!/20200623A
+!!!20200617A - TAM output switches
+           &              ln_trj_out_t   , ln_trj_out_s   , ln_trj_out_u   ,  &
+           &              ln_trj_out_v   , ln_trj_out_w   , ln_trj_out_ssh ,  &
+           &              ln_trj_out_hdiv, ln_trj_out_rot ,                   & 
+           &              ln_trj_out_rhd , ln_trj_out_rhop
+!/20200617A
       ln_trjwri_tan = .FALSE.
       nn_ittrjfrq_tan = 1
       cn_tantrj = 'tl_trajectory'
@@ -172,51 +217,7 @@ CONTAINS
       END IF
    END SUBROUTINE tl_trj_ini
 
-   SUBROUTINE ad_trj_ini
-      !!-----------------------------------------------------------------------
-      !!
-      !!                  ***  ROUTINE ad_trj_ini ***
-      !!
-      !! ** Purpose : initialize the adjoint trajectory
-      !!
-      !! ** Method  :
-      !!
-      !! ** Action  :
-      !!
-      !! References :
-      !!
-      !! History :
-      !!        ! 2014-01-13 adapted copy of tl_trj_ini, 10-07 (F. Vigilant)
-      !!        ! 2014-01-13 - SAM 
-      !!-----------------------------------------------------------------------
-
-      IMPLICIT NONE
-
-      NAMELIST/namad_trj/ nn_ittrjfrq_adj, nn_ittrj0_adj, ln_trjwri_adj, cn_adjtrj
-
-      ln_trjwri_adj = .FALSE.
-      nn_ittrjfrq_adj = 1
-      nn_ittrj0_adj = nit000-1
-      cn_adjtrj = 'ad_trajectory'
-      REWIND ( numnam )
-      READ   ( numnam, namad_trj )
-
-      ! Control print
-      IF(lwp) THEN
-         WRITE(numout,*)
-         WRITE(numout,*) 'ad_trj_ini : Adjoint trajectory handling:'
-         WRITE(numout,*) '~~~~~~~~~~~~'
-         WRITE(numout,*) '          Namelist namad_trj : set trajectory parameters'
-         WRITE(numout,*) '             Logical switch for writing out adjoint trajectory       ', &
-            &            ' ln_trjwri_adj = ', ln_trjwri_adj
-         WRITE(numout,*) '             Frequency of adjoint trajectory output                  ', &
-            &            ' nn_ittrjfrq_adj = ', nn_ittrjfrq_adj
-         WRITE(numout,*) '             Offset of adjoint trajectory output                     ', &
-            &            ' nn_ittrj0_adj = ', nn_ittrj0_adj
-      END IF
-    END SUBROUTINE ad_trj_ini
-
-   SUBROUTINE trj_rea( kstp, kdir, lreset )
+   SUBROUTINE trj_rea( kstp, kdir )
       !!-----------------------------------------------------------------------
       !!
       !!                  ***  ROUTINE trj_reat  ***
@@ -239,9 +240,7 @@ CONTAINS
       !! * Arguments
       INTEGER, INTENT(in) :: &
          & kstp, &           ! Step for requested trajectory
-         & kdir              ! Direction for stepping (1 forward, -1 backward
-! 2014-06-16 - SAM: added lreset option
-      LOGICAL, INTENT(in), OPTIONAL :: lreset ! Reset interpolation at given time step (Note, sensitive to value of kdir)
+         & kdir              ! Direction for stepping (1 forward, -1 backward)
       !! * Local declarations
       CHARACTER (LEN=100) :: &
          & cl_dirtrj
@@ -259,30 +258,63 @@ CONTAINS
          & zstp
       ! Initialize data and open file
       !! if step time is corresponding to a saved state
-! 2014-06-16 - SAM: added lreset option
-      IF ( ( MOD( kstp - nit000 + 1, nn_ittrjfrq ) == 0 ) .OR. PRESENT(lreset) ) THEN
 
-! 2014-06-16 - SAM: added lreset option
-!         it = kstp - nit000 + 1
-         it = ((kstp - nit000 + 1 + nn_ittrjoffset) - MOD(kstp - nit000 + 1, nn_ittrjfrq))
+      !IF ( ( MOD( kstp - nit000 + 1, nn_ittrjfrq ) == 0 )  ) THEN
 
-         IF ( inumtrj1 == -1 ) THEN
+!!!20200622A - differing timesteps between NL and TAM
+      ! Need to add a check if MOD(nn_ittrjfrq*rn_rdttrj/rdt,1)==0
+      IF ( ( MOD( kstp - nit000 + 1, INT(nn_ittrjfrq*rn_rdttrj/rdt) ) == 0 )  ) THEN
+!!!/20200622A
 
+!!! 20191004R - trajectory offset option
+         !it = kstp - nit000 + 1
+         !it = ((kstp - nit000 + 1 + nn_ittrjoffset) - MOD(kstp - nit000 + 1, nn_ittrjfrq))
+
+!!! 20200622A - allow different timesteps between NL and TAM
+         it = ( INT( (kstp - nit000 + 1)*(rdt/rn_rdttrj) ) )
+!!!/20200622A
+
+!!!/20191004R
+
+          IF ( inumtrj1 == -1 ) THEN
+            
             ! Define the input file
-!!!2017-09-20 changing filenames to allow at least 8 digit time-step
-            WRITE(cl_dirtrj, FMT='(A,A,I0.8,".nc")' ) TRIM( cn_dirtrj ), '_', it
+!!! 20191004D
+            !WRITE(cl_dirtrj, FMT='(I5.5,A,A,".nc")' ) it, '_', TRIM( cn_dirtrj )
+!!!20191013A - only read trajectory from areas of interest otherwise just read time 0
+             IF (  (ln_pt_regional == .FALSE.) .OR. &
+              & ( &
+              & ANY( (gphit < rn_NEptlat ) .AND. ( gphit > rn_SWptlat )) &
+              & .AND. &
+              & ANY( (glamt > rn_SWptlon ) .AND. (glamt < rn_NEptlon )) &
+              & ) &
+              &  ) THEN            
+                WRITE(cl_dirtrj, FMT='(A,A,I0.8,".nc")' ) TRIM( cn_dirtrj ), '_', it
+
+            IF(lwp) THEN
+                WRITE(numout,*)
+                WRITE(numout,*)'first filename defined here as : ',TRIM(cl_dirtrj)
+                WRITE(numout,*)
+            ENDIF
+
+                
+            ELSE
+            !itz = nit000 - 1 + nn_ittrjoffset
+               WRITE(cl_dirtrj, FMT='(A,A,I0.8,".nc")' ) TRIM( cn_dirtrj ), '_', (nit000 -1 + nn_ittrjoffset)
+            END IF
+!!!/20191013A
             !         WRITE(cl_dirtrj, FMT='(A,".nc")' ) TRIM( c_dirtrj )
+            !!! /20191004D
+
             cl_dirtrj = TRIM( cl_dirtrj )
 
             IF(lwp) THEN
-
                WRITE(numout,*)
                WRITE(numout,*)'Reading non-linear fields from : ',TRIM(cl_dirtrj)
                WRITE(numout,*)
-
             ENDIF
             CALL iom_open( cl_dirtrj, inumtrj1 )
-            if ( inumtrj1 == -1) CALL ctl_stop( 'No tam_trajectory cl_amstrj found' )
+            if ( inumtrj1 == -1)  CALL ctl_stop( 'No tam_trajectory cl_amstrj found' )
             IF ( .NOT. ln_mem ) THEN
                ALLOCATE( &
                   & empr1(jpi,jpj),  &
@@ -300,7 +332,6 @@ CONTAINS
                   & vnr1(jpi,jpj,jpk),     &
                   & tnr1(jpi,jpj,jpk),     &
                   & snr1(jpi,jpj,jpk),     &
-		  & sshnr1(jpi,jpj),       & !!!2017-05-04
                   & avmur1(jpi,jpj,jpk),   &
                   & avmvr1(jpi,jpj,jpk),   &
                   & avtr1(jpi,jpj,jpk),    &
@@ -308,12 +339,15 @@ CONTAINS
                   & unr2(jpi,jpj,jpk),     &
                   & vnr2(jpi,jpj,jpk),     &
                   & tnr2(jpi,jpj,jpk),     &
-                  & snr2(jpi,jpj,jpk),     & 
-                  & sshnr2(jpi,jpj),       & !!!2017-05-04 added sshn to trajectory              
+                  & snr2(jpi,jpj,jpk),     &
                   & avmur2(jpi,jpj,jpk),   &
                   & avmvr2(jpi,jpj,jpk),   &
                   & avtr2(jpi,jpj,jpk),    &
-                  & etot3r2(jpi,jpj,jpk)   &
+                  & etot3r2(jpi,jpj,jpk),  &
+!!! 20191004C Addd "sshn" to trajectory
+                  & sshnr1(jpi,jpj),       &
+                  & sshnr2(jpi,jpj)        &
+!!! /20191004C
                   & )
 #if defined key_traldf_eiv
 #if defined key_traldf_c3d
@@ -359,18 +393,21 @@ CONTAINS
                ln_mem = .TRUE.
             ENDIF
          ENDIF
-
+         
 
       ! Read records
 
-         inrcm = INT( ( kstp - nit000 + 1 ) / nn_ittrjfrq ) + 1
+         !inrcm = INT( ( kstp - nit000 + 1 ) / nn_ittrjfrq ) + 1
+!!!20200622A
+         inrcm = INT( ( kstp - nit000 + 1 ) / INT(nn_ittrjfrq*rn_rdttrj/rdt) ) + 1
+!/20200622A
+
 
          ! Copy record 1 into record 2
-! 2014-06-16 - SAM: added lreset option
+
          IF ( ( kstp /= nitend )         .AND. &
             & ( kstp - nit000 + 1 /= 0 ) .AND. &
-            & ( kdir == -1 ) .AND. &
-            & .NOT.PRESENT(lreset) ) THEN
+            & ( kdir == -1 ) ) THEN
 
             stpr2           = stpr1
 
@@ -383,11 +420,12 @@ CONTAINS
             vnr2    (:,:,:) = vnr1    (:,:,:)
             tnr2    (:,:,:) = tnr1    (:,:,:)
             snr2    (:,:,:) = snr1    (:,:,:)
-! 2017-05-04 Added 'sshn' to trajectory
-            sshnr2   (:,:)   = sshnr1   (:,:)!
             avmur2  (:,:,:) = avmur1  (:,:,:)
             avmvr2  (:,:,:) = avmvr1  (:,:,:)
             avtr2   (:,:,:) = avtr1   (:,:,:)
+!!! 20191004C Adding sshn to nonlinear trajectory
+            sshnr2  (:,:)   = sshnr1    (:,:)
+!!! /20191004C
 #if defined key_ldfslp
             uslpr2  (:,:,:) = uslpr1  (:,:,:)
             vslpr2  (:,:,:) = vslpr1  (:,:,:)
@@ -430,8 +468,27 @@ CONTAINS
 
          IF ( ( kstp - nit000 + 1 /= 0 ) .AND. ( kdir == -1 ) ) THEN
             ! We update the input filename
-!!!2017-09-20 changing filename time-steps to at least 8 digits
+
+!!!20191013A - only read traj from areas of interest
+         IF (  (ln_pt_regional == .FALSE.) .OR. &
+              & ( &
+              & ANY( (gphit < rn_NEptlat ) .AND. ( gphit > rn_SWptlat )) &
+              & .AND. &
+              & ANY( (glamt > rn_SWptlon ) .AND. (glamt < rn_NEptlon )) &
+              & ) &
+              &  ) THEN            
+            
+            !WRITE(cl_dirtrj, FMT='(I5.5,A,A,".nc")' ) (it-nn_ittrjfrq), '_', TRIM(cn_dirtrj )
+!!!20191004D expanding I/O to allow up to 100e6 time steps
             WRITE(cl_dirtrj, FMT='(A,A,I0.8,".nc")' ) TRIM(cn_dirtrj ), '_', (it-nn_ittrjfrq)
+!!!20200622A 
+            !WRITE(cl_dirtrj, FMT='(A,A,I0.8,".nc")' ) TRIM(cn_dirtrj ), '_', (it-nn_ittrjfrq)
+!/20200622A 
+! /20191004D            
+         ELSE
+            WRITE(cl_dirtrj, FMT='(A,A,I0.8,".nc")' ) TRIM( cn_dirtrj ), '_', (nit000 - 1 + nn_ittrjoffset)
+         END IF
+!!!/20191013A
 
             cl_dirtrj = TRIM( cl_dirtrj )
             IF(lwp) THEN
@@ -443,27 +500,37 @@ CONTAINS
 
          ! Read record 1
 
-! 2014-06-16 - SAM: added lreset option
          IF ( ( kstp - nit000 + 1 == 0 ) .AND.( kdir == 1           ) .OR. &
-            & ( kstp - nit000 + 1 /= 0 ) .AND.( kdir == -1          ) .OR. &
-            & PRESENT(lreset) ) THEN
+            & ( kstp - nit000 + 1 /= 0 ) .AND.( kdir == -1          ) ) THEN
 
             IF ( kdir == -1 ) inrcm = inrcm - 1
 !            inrc = inrcm
             ! temporary fix: currently, only one field by step time
             inrc = 1
-            stpr1 = (inrcm - 1) * nn_ittrjfrq
-
+            !stpr1 = (inrcm - 1) * nn_ittrjfrq
+!!!20200622A           
+            stpr1 = (inrcm - 1) * INT(nn_ittrjfrq * rn_rdttrj / rdt)
+!/20200622A
             ! bug fixed to read several time the initial data
-! 2014-06-29
-!            IF ( ( kstp - nit000 + 1 == 0 ) .AND. ( kdir == 1 ) .OR. &
-!                 & PRESENT(lreset) ) THEN
             IF ( ( kstp - nit000 + 1 == 0 ) .AND. ( kdir == 1 ) ) THEN
-! 2014-06-29 .OR. &
-! 2014-06-29                & PRESENT(lreset) ) THEN
                ! Define the input file
-               !!!2017-09-20 changed filenames to allow at least 8 digit time-steps
-               WRITE(cl_dirtrj, FMT='(A,A,I0.8,".nc")' ) TRIM( cn_dirtrj ), '_', it
+!!!20191013A - only read traj from areas of interest
+         IF (  (ln_pt_regional == .FALSE.) .OR. &
+              & ( &
+              & ANY( (gphit < rn_NEptlat ) .AND. ( gphit > rn_SWptlat )) &
+              & .AND. &
+              & ANY( (glamt > rn_SWptlon ) .AND. (glamt < rn_NEptlon )) &
+              & ) &
+              &  ) THEN            
+!!! 20191004D expanding I/O to allow up to 100e6 time steps
+               !WRITE(cl_dirtrj, FMT='(I5.5, A,A,".nc")' ) it, '_', TRIM( cn_dirtrj )
+            WRITE(cl_dirtrj, FMT='(A,A,I0.8, ".nc")' ) TRIM( cn_dirtrj ), '_', it
+!!! /20191004D
+         ELSE
+               !itz = nit000 - 1 + nn_ittrjoffset
+            WRITE(cl_dirtrj, FMT='(A,A,I0.8,".nc")' ) TRIM( cn_dirtrj ), '_', (nit000 - 1 + nn_ittrjoffset)
+         END IF
+!!!/20191013A
 
                cl_dirtrj = TRIM( cl_dirtrj )
 
@@ -481,13 +548,14 @@ CONTAINS
             CALL iom_get( inumtrj1, jpdom_autoglo, 'vn'    , vnr1    , inrc )
             CALL iom_get( inumtrj1, jpdom_autoglo, 'tn'    , tnr1    , inrc )
             CALL iom_get( inumtrj1, jpdom_autoglo, 'sn'    , snr1    , inrc )
-! 2017-05-04 Added 'sshn' to trajectory
-            CALL iom_get( inumtrj1, jpdom_autoglo, 'sshn'  , sshnr1  , inrc )!
             CALL iom_get( inumtrj1, jpdom_autoglo, 'avmu'  , avmur1  , inrc )
             CALL iom_get( inumtrj1, jpdom_autoglo, 'avmv'  , avmvr1  , inrc )
             CALL iom_get( inumtrj1, jpdom_autoglo, 'avt'   , avtr1   , inrc )
             CALL iom_get( inumtrj1, jpdom_autoglo, 'bfrua' , bfruar1 , inrc )
             CALL iom_get( inumtrj1, jpdom_autoglo, 'bfrva' , bfrvar1 , inrc )
+!!! 20191004C - adding sshn to nonlinear trajectory
+            CALL iom_get( inumtrj1, jpdom_autoglo, 'sshn'  , sshnr1  , inrc )
+!!! /20191004C
 #if defined key_ldfslp
             CALL iom_get( inumtrj1, jpdom_autoglo, 'uslp'  , uslpr1  , inrc )
             CALL iom_get( inumtrj1, jpdom_autoglo, 'vslp'  , vslpr1  , inrc )
@@ -516,11 +584,10 @@ CONTAINS
 
 
          ! Copy record 2 into record 1
-! 2014-06-16 - SAM: added lreset option
+
          IF ( ( kstp - nit000 + 1 /= 0 ) .AND. &
             & ( kstp /= nitend         ) .AND. &
-            & ( kdir == 1              ) .AND. &
-            & .NOT.PRESENT(lreset) ) THEN
+            & ( kdir == 1              ) ) THEN
 
             stpr1           = stpr2
             empr1   (:,:)   = empr2   (:,:)
@@ -531,11 +598,12 @@ CONTAINS
             vnr1    (:,:,:) = vnr2    (:,:,:)
             tnr1    (:,:,:) = tnr2    (:,:,:)
             snr1    (:,:,:) = snr2    (:,:,:)
-! 2017-05-04 Added 'sshn' to trajectory
-            sshnr1  (:,:)   = sshnr2  (:,:)!
             avmur1  (:,:,:) = avmur2  (:,:,:)
             avmvr1  (:,:,:) = avmvr2  (:,:,:)
             avtr1   (:,:,:) = avtr2   (:,:,:)
+!!! 20191004C - added sshn to trajectory
+            sshnr1  (:,:)   = sshnr2  (:,:)
+!!!/20191004C
 #if defined key_ldfslp
             uslpr1  (:,:,:) = uslpr2  (:,:,:)
             vslpr1  (:,:,:) = vslpr2  (:,:,:)
@@ -576,18 +644,47 @@ CONTAINS
          ENDIF
 
          ! Read record 2
-! 2014-06-16 - SAM: added lreset option
+
          IF ( ( ( kstp /= nitend ) .AND. ( kdir == 1  )) .OR. &
-            &   ( kstp == nitend ) .AND.(  kdir == -1   ) .OR. &
-            & PRESENT(lreset) ) THEN
+            &   ( kstp == nitend ) .AND.(  kdir == -1   ) ) THEN
 
                ! Define the input file
                IF  (  kdir == -1   ) THEN
-                   !!!2017-09-20 changed filenames to allow at least 8-digit time-steps
-                   WRITE(cl_dirtrj, FMT='(A,A,I0.8,".nc")' ) TRIM( cn_dirtrj ), '_', it
+!!!20191013A - only read traj from areas of interest
+                  IF (  (ln_pt_regional == .FALSE.) .OR. &
+                       & ( &
+                       & ANY( (gphit < rn_NEptlat ) .AND. ( gphit > rn_SWptlat )) &
+                       & .AND. &
+                       & ANY( (glamt > rn_SWptlon ) .AND. (glamt < rn_NEptlon )) &
+                       & ) &
+                       &  ) THEN            
+                                          
+!!!20191004D - expanding I/O filenames to allow up to 100e6 time steps
+                     WRITE(cl_dirtrj, FMT='(A,A,I0.8,".nc")' ) TRIM( cn_dirtrj ), '_', it
+                  !WRITE(cl_dirtrj, FMT='(I5.5,A,A,".nc")' ) it, '_', TRIM( cn_dirtrj )
+!!!/20191004D
+                  ELSE
+                     WRITE(cl_dirtrj, FMT='(A,A,I0.8,".nc")' ) TRIM( cn_dirtrj ), '_', (nit000 - 1)
+                  END IF
+!!!/20191013A
                ELSE
-                   !!!2017-09-20 changed filenames to allow at least 8-digit time-steps
-                  WRITE(cl_dirtrj, FMT='(A,A,I0.8,".nc")' ) TRIM( cn_dirtrj ), '_', (it+nn_ittrjfrq)
+!!!20191013A - only read traj from areas of interest
+                  IF (  (ln_pt_regional == .FALSE.) .OR. &
+                       & ( &
+                       & ANY( (gphit < rn_NEptlat ) .AND. ( gphit > rn_SWptlat )) &
+                       & .AND. &
+                       & ANY( (glamt > rn_SWptlon ) .AND. (glamt < rn_NEptlon )) &
+                       & ) &
+                       &  ) THEN            
+                                          
+!!!20191004D - expanding I/O filenames to allow up to 100e6 time steps
+                  !WRITE(cl_dirtrj, FMT='(I5.5,A,A,".nc")' ) (it+nn_ittrjfrq), '_', TRIM( cn_dirtrj )
+                     WRITE(cl_dirtrj, FMT='(A,A,I0.8,".nc")' ) TRIM( cn_dirtrj ), '_', (it+nn_ittrjfrq)
+!!!/20191004D
+                  ELSE
+                     WRITE(cl_dirtrj, FMT='(A,A,I0.8,".nc")' ) TRIM( cn_dirtrj ), '_', (nit000 - 1)
+                  END IF
+!!!/20191013A
                ENDIF
                cl_dirtrj = TRIM( cl_dirtrj )
 
@@ -604,7 +701,10 @@ CONTAINS
             !            inrc  = inrcp
             inrc = 1  ! temporary  fix
 
-            stpr2 = (inrcp - 1) * nn_ittrjfrq
+            !stpr2 = (inrcp - 1) * nn_ittrjfrq
+!!!20200622A
+            stpr2 = (inrcp - 1) * INT(nn_ittrjfrq * rn_rdttrj / rdt)
+!/20200622A
 
             CALL iom_get( inumtrj2, jpdom_autoglo, 'emp'   , empr2   , inrc )
             CALL iom_get( inumtrj2, jpdom_autoglo, 'emps'  , empsr2  , inrc )
@@ -612,13 +712,14 @@ CONTAINS
             CALL iom_get( inumtrj2, jpdom_autoglo, 'vn'    , vnr2    , inrc )
             CALL iom_get( inumtrj2, jpdom_autoglo, 'tn'    , tnr2    , inrc )
             CALL iom_get( inumtrj2, jpdom_autoglo, 'sn'    , snr2    , inrc )
-! 2017-05-04 Added 'sshn' to trajectory
-            CALL iom_get( inumtrj2, jpdom_autoglo, 'sshn'  , sshnr2  , inrc )!
             CALL iom_get( inumtrj2, jpdom_autoglo, 'avmu'  , avmur2  , inrc )
             CALL iom_get( inumtrj2, jpdom_autoglo, 'avmv'  , avmvr2  , inrc )
             CALL iom_get( inumtrj2, jpdom_autoglo, 'avt'   , avtr2   , inrc )
             CALL iom_get( inumtrj2, jpdom_autoglo, 'bfrua' , bfruar2 , inrc )
             CALL iom_get( inumtrj2, jpdom_autoglo, 'bfrva' , bfrvar2 , inrc )
+!!! 20191004C add sshn to nonlinear trajectory
+            CALL iom_get( inumtrj2, jpdom_autoglo, 'sshn'  , sshnr2  , inrc )
+!!! /20191004C
 #if defined key_ldfslp
             CALL iom_get( inumtrj2, jpdom_autoglo, 'uslp'  , uslpr2  , inrc )
             CALL iom_get( inumtrj2, jpdom_autoglo, 'vslp'  , vslpr2  , inrc )
@@ -646,12 +747,6 @@ CONTAINS
 
       ENDIF
 
-!2014-06-16 - SAM: Warning if interpolation is attempted without having read in trajectory data
-      IF ((inumtrj1==-1).OR.(inumtrj2==-1)) THEN
-         IF(lwp) WRITE(numout,*) '   Warning! Interpolation of trajectory is attempted without', &
-              & ' having trajectory data available'
-      ENDIF
-
       ! Add warning for user
       IF ( (kstp == nitend) .AND. ( MOD( kstp - nit000 + 1, nn_ittrjfrq ) /= 0 )  ) THEN
           IF(lwp) WRITE(numout,*) '   Warning ! nitend (=',nitend, ')', &
@@ -666,7 +761,6 @@ CONTAINS
       ! Interpolation coefficients
 
       zstp = kstp - nit000 + 1
-
       zden   = 1.0 / ( stpr2 - stpr1 )
 
       zwtr1  = ( stpr2 - zstp      ) * zden
@@ -675,8 +769,10 @@ CONTAINS
       IF(lwp)WRITE(numout,*) '   linear interpolate coeff.', &
          &                   '  = ', zwtr1, zwtr2
 
-! 2014-06-16 - SAM: correct transition of b->n for 'kdir==-1'
+!!! 20191004E - SAM: correct transition of b->n for 'kdir==-1'
+      !IF ( kstp /= nit000-1 ) THEN
       IF ( ( kstp /= nit000-1 ).AND.( kdir == 1 ) ) THEN
+!!! /20191004E
          tsb(:,:,:,:) = tsn(:,:,:,:)
          ub(:,:,:) = un(:,:,:)
          vb(:,:,:) = vn(:,:,:)
@@ -689,30 +785,35 @@ CONTAINS
       vn(:,:,:)     = zwtr1 * vnr1    (:,:,:) + zwtr2 * vnr2    (:,:,:)
       tsn(:,:,:,jp_tem)     = zwtr1 * tnr1    (:,:,:) + zwtr2 * tnr2    (:,:,:)
       tsn(:,:,:,jp_sal)     = zwtr1 * snr1    (:,:,:) + zwtr2 * snr2    (:,:,:)
-! 2017-05-04 Added 'sshn' to trajectory
-      sshn(:,:)     = zwtr1 * sshnr1    (:,:) + zwtr2 * sshnr2    (:,:)!
-! 2014-06-16 - SAM: correct transition of b->n for 'kdir==-1'; Note, zstp should always be at leas stpr1+1
+!!! 20191004C Added 'sshn' to trajectory
+      sshn(:,:)     = zwtr1 * sshnr1    (:,:) + zwtr2 * sshnr2    (:,:)
+!!! /20191004C
+
+!!! 20191004E - SAM: correct transition of b->n for 'kdir==-1'; Note, zstp should always be at leas stpr1+1
       IF ( kdir == -1 ) THEN
-! 2015-03-09 - SAM: corrected 'stpr2 - zstp -1 ' to 'stpr2 - zstp + 1'
+!!! /20191004E
+!!! 20191004F - SAM: corrected 'stpr2 - zstp -1 ' to 'stpr2 - zstp + 1'
          zwtr1  = ( stpr2 - zstp + 1  ) * zden
          zwtr2  = ( zstp - 1 - stpr1 ) * zden
          ub(:,:,:)     = zwtr1 * unr1    (:,:,:) + zwtr2 * unr2    (:,:,:)
          vb(:,:,:)     = zwtr1 * vnr1    (:,:,:) + zwtr2 * vnr2    (:,:,:)
          tsb(:,:,:,jp_tem)     = zwtr1 * tnr1    (:,:,:) + zwtr2 * tnr2    (:,:,:)
          tsb(:,:,:,jp_sal)     = zwtr1 * snr1    (:,:,:) + zwtr2 * snr2    (:,:,:)
+!!! /20191004F
 
-         IF(lwp)WRITE(numout,*) ' b linear interpolate coeff.', &
-           &                   '  = ', zwtr1, zwtr2
+!!! 20191004C Added 'sshb' to trajectory
+         sshb(:,:)     = zwtr1 * sshnr1    (:,:) + zwtr2 * sshnr2    (:,:)
+!!! /20191004C
 
+!!! 20191004G - SAM: adjusted outputting of interpolation coefficients
+         IF(lwp)WRITE(numout,*) '   interp. coef. for "before" time lev.: ', &
+            & zwtr1, zwtr2
          zwtr1  = ( stpr2 - zstp      ) * zden
          zwtr2  = ( zstp  - stpr1     ) * zden      
       END IF
-! 2014-06-16 - SAM: added lreset option; Note, tsb, ub, vb are not
-! set to values from the preceding time step, hence call to
-! 'trj_rea(kstp,0)' should be followed by call to 'trj_rea' with
-! 'kdir==1' or 'kdir==-1' (as it usually is when the common time step
-! subroutines are called ('stp_tan' and 'stp_adj')
-      IF ( ( kstp == nit000-1 ).OR.PRESENT(lreset) ) THEN
+!!! /20191004G
+
+      IF ( kstp == nit000-1 ) THEN
          tsb(:,:,:,:) = tsn(:,:,:,:)
          ub(:,:,:) = un(:,:,:)
          vb(:,:,:) = vn(:,:,:)
@@ -880,7 +981,12 @@ CONTAINS
 
    END SUBROUTINE trj_rd_spl
 
-   SUBROUTINE tl_trj_wri(kstp)
+
+!!! 20191004H - switch to allow adjoint output
+   SUBROUTINE tl_trj_wri(kstp, kadj)
+   !SUBROUTINE tl_trj_wri(kstp)
+!!!/20191004H
+
       !!-----------------------------------------------------------------------
       !!
       !!                  ***  ROUTINE tl_trj_wri ***
@@ -896,9 +1002,15 @@ CONTAINS
       !!-----------------------------------------------------------------------
       !! *Module udes
       USE iom
+
       !! * Arguments
       INTEGER, INTENT(in) :: &
          & kstp           ! Step for requested trajectory
+
+!!! 20191004H switch to allow adjoint output
+      INTEGER, INTENT(in), OPTIONAL :: kadj
+!!! /20191004H
+
       !! * Local declarations
       INTEGER :: &
          & inum           ! File unit number
@@ -908,17 +1020,25 @@ CONTAINS
          & filename
       CHARACTER (LEN=100) :: &
          & cl_tantrj
+!!! 20191004B - single variable TAM output: temporary variable to sum "b" and "n" variables
+      REAL(wp), POINTER, DIMENSION(:,:,:) :: zicapprox3d 
+      REAL(wp), POINTER, DIMENSION(:,:  ) :: zicapprox2d 
+!!! /20191004B
 
       ! Initialize data and open file
       !! if step time is corresponding to a saved state
       IF ( ( MOD( kstp - nit000 + 1, nn_ittrjfrq_tan ) == 0 )  ) THEN
-
+!!! 20191004B - single variable TAM output: temporary variable to sum "b" and "n" variables
+         CALL wrk_alloc(jpi, jpj, jpk, zicapprox3d)
+         CALL wrk_alloc(jpi, jpj,      zicapprox2d)
+!!! /20191004B
          it = kstp - nit000 + 1
 
             ! Define the input file
-            !!!2017-09-20 changed filenames to allow at least 8 digit time-steps
-            WRITE(cl_tantrj, FMT='(I0.8, A,A,".nc")' ) it, '_', TRIM( cn_tantrj )
-
+!!! 20191004D adjust filename to accommodate longer runs (100e6 time steps)
+            !WRITE(cl_tantrj, FMT='(I5.5, A,A,".nc")' ) it, '_', TRIM( cn_tantrj )
+            WRITE(cl_tantrj, FMT='(A,A,I0.8,".nc")' ) TRIM( cn_tantrj ), '_', it
+!!! /20191004D
             cl_tantrj = TRIM( cl_tantrj )
 
             IF(lwp) THEN
@@ -930,97 +1050,202 @@ CONTAINS
             CALL iom_open( cl_tantrj, inum, ldwrt = .TRUE., kiolib = jprstlib)
 
             ! Output trajectory fields
-            CALL iom_rstput( it, it, inum, 'un_tl'   , un_tl   )
-            CALL iom_rstput( it, it, inum, 'vn_tl'   , vn_tl   )
-            CALL iom_rstput( it, it, inum, 'un'   , un   )
-            CALL iom_rstput( it, it, inum, 'vn'   , vn   )
-            CALL iom_rstput( it, it, inum, 'tn_tl'   , tsn_tl(:,:,:,jp_tem)   )
-            CALL iom_rstput( it, it, inum, 'sn_tl'   , tsn_tl(:,:,:,jp_sal)   )
-            CALL iom_rstput( it, it, inum, 'wn_tl'   , wn_tl   )
-            CALL iom_rstput( it, it, inum, 'hdivn_tl', hdivn_tl)
-            CALL iom_rstput( it, it, inum, 'rotn_tl' , rotn_tl )
-            CALL iom_rstput( it, it, inum, 'rhd_tl' , rhd_tl )
-            CALL iom_rstput( it, it, inum, 'rhop_tl' , rhop_tl )
-            CALL iom_rstput( it, it, inum, 'sshn_tl' , sshn_tl )
+!!! 20200617A - adding variable switches for TAM output
+            IF (ln_trj_out_t) THEN
+               CALL iom_rstput( it, it, inum, 'tn'   , tsn(:,:,:,jp_tem)   )
+            END IF
+            IF (ln_trj_out_s) THEN
+               CALL iom_rstput( it, it, inum, 'sn'   , tsn(:,:,:,jp_sal)   )
+            END IF
+            IF (ln_trj_out_u) THEN
+               CALL iom_rstput( it, it, inum, 'un'   , un   )
+            END IF
+            IF (ln_trj_out_v) THEN
+               CALL iom_rstput( it, it, inum, 'vn'   , vn   )
+            END IF
+            IF (ln_trj_out_w) THEN
+               CALL iom_rstput( it, it, inum, 'wn'   , wn   )
+            END IF
+            IF (ln_trj_out_ssh) THEN
+               CALL iom_rstput( it, it, inum, 'sshn' , sshn )
+            END IF
+            IF (ln_trj_out_hdiv) THEN
+               CALL iom_rstput( it, it, inum, 'hdivn', hdivn)
+            END IF
+            IF (ln_trj_out_rot) THEN
+               CALL iom_rstput( it, it, inum, 'rotn' , rotn )
+            END IF
+            IF (ln_trj_out_rhd) THEN
+               CALL iom_rstput( it, it, inum, 'rhd' , rhd )
+            END IF
+            IF (ln_trj_out_rhop) THEN
+               CALL iom_rstput( it, it, inum, 'rhop' , rhop )
+            END IF
+            !CALL iom_rstput( it, it, inum, 'un'   , un   )
+            !CALL iom_rstput( it, it, inum, 'vn'   , vn   )
+            !CALL iom_rstput( it, it, inum, 'wn'   , wn   )
+            !CALL iom_rstput( it, it, inum, 'tn'   , tsn(:,:,:,jp_tem)   )
+            !CALL iom_rstput( it, it, inum, 'sn'   , tsn(:,:,:,jp_sal)   )
+            !CALL iom_rstput( it, it, inum, 'sshn' , sshn )
+            
+!!! /20200617A
 
-            CALL iom_close( inum )
+!!! 20191004H - switch to allow adjoint output 
+            IF (.not.PRESENT(kadj)) THEN
+!!! /20191004H
 
-         ENDIF
+!!! 20200617A - Adding variable switches for TAM output
+!!! 20191004B combine variables into a single output             
+            IF (ln_tam_out_t) THEN
+               zicapprox3d(:,:,:) = tsn_tl(:,:,:,jp_tem) + tsb_tl(:,:,:,jp_tem)
+               CALL lbc_lnk(zicapprox3d(:,:,:), 'T', 1.0_wp)
+               CALL iom_rstput( it, it, inum, 't_tl'    , zicapprox3d)
+            END IF
 
-   END SUBROUTINE tl_trj_wri
+            IF (ln_tam_out_s) THEN
+               zicapprox3d(:,:,:) = tsn_tl(:,:,:,jp_sal) + tsb_tl(:,:,:,jp_sal)
+               CALL lbc_lnk(zicapprox3d(:,:,:), 'T', 1.0_wp)
+               CALL iom_rstput( it, it, inum, 's_tl'    , zicapprox3d)
+            END IF
 
-   SUBROUTINE ad_trj_wri(kstp, lforce)
-      !!-----------------------------------------------------------------------
-      !!
-      !!                  ***  ROUTINE ad_trj_wri ***
-      !!
-      !! ** Purpose : Write out adjoint trajectory
-      !!
-      !! ** Method  :
-      !!
-      !! ** Action  :
-      !!
-      !! History :
-      !!        ! 2014-01-13 adapted copy of tl_trj_wri, 10-07 (F. Vigilant)
-      !!        ! 2014-01-13 SAM
-      !!-----------------------------------------------------------------------
-      !! *Module udes
-      USE iom
-      !! * Arguments
-      INTEGER, INTENT(in) :: &
-         & kstp           ! Step for requested trajectory
-! 2015-02-15
-      LOGICAL, INTENT(in), OPTIONAL :: lforce ! Force output
-      !! * Local declarations
-      INTEGER :: &
-         & inum           ! File unit number
-      INTEGER :: &
-         & it
-      CHARACTER (LEN=50) :: &
-         & filename
-      CHARACTER (LEN=100) :: &
-         & cl_adjtrj
+            IF (ln_tam_out_u) THEN
+               zicapprox3d(:,:,:) = un_tl(:,:,:) + ub_tl(:,:,:)
+               CALL lbc_lnk(zicapprox3d(:,:,:), 'U', -1.0_wp)
+               CALL iom_rstput( it, it, inum, 'u_tl'    , zicapprox3d)
+            END IF
 
-      ! Initialize data and open file
-      !! if step time is corresponding to a saved state
+            IF (ln_tam_out_v) THEN
+               zicapprox3d(:,:,:) = vn_tl(:,:,:) + vb_tl(:,:,:)
+               CALL lbc_lnk(zicapprox3d(:,:,:), 'V', -1.0_wp)
+               CALL iom_rstput( it, it, inum, 'v_tl'    , zicapprox3d)
+            END IF
 
-      IF ( ( MOD( kstp - nit000 + 1 - nn_ittrj0_adj, nn_ittrjfrq_adj ) == 0 ) .OR. PRESENT(lforce) ) THEN
+            IF (ln_tam_out_ssh) THEN
+               zicapprox2d(:,:) = sshn_tl(:,:) + sshb_tl(:,:)
+               CALL lbc_lnk_adj(zicapprox2d(:,:), 'T', 1.0_wp)
+               CALL iom_rstput( it, it, inum, 'ssh_tl' , zicapprox2d )
+            END IF
 
-         it = kstp - nit000 + 1
+            IF (ln_tam_out_hdiv) THEN
+               zicapprox3d(:,:,:) = hdivn_tl(:,:,:) + hdivb_tl(:,:,:)
+               CALL lbc_lnk_adj(zicapprox3d(:,:,:), 'T', 1.0_wp)
+               CALL iom_rstput( it, it, inum, 'hdiv_tl' , zicapprox3d )
+            END IF
 
-            ! Define the input file
-            !!! 2017-09-20 changed filenames to allow at least 8 digit time-steps
-            WRITE(cl_adjtrj, FMT='(I0.8, A,A,".nc")' ) it, '_', TRIM( cn_adjtrj )
+            IF (ln_tam_out_rot) THEN
+               zicapprox3d(:,:,:) = rotn_tl(:,:,:) + rotb_tl(:,:,:)
+               CALL lbc_lnk_adj(zicapprox3d(:,:,:), 'F', 1.0_wp)
+               CALL iom_rstput( it, it, inum, 'rot_tl' , zicapprox3d )
+            END IF
+!!! /20191004B
 
-            cl_adjtrj = TRIM( cl_adjtrj )
+            IF (ln_tam_out_w) THEN
+               CALL iom_rstput( it, it, inum, 'wn_tl'   , wn_tl   )
+            END IF
 
-            IF(lwp) THEN
-               WRITE(numout,*)
-               WRITE(numout,*)'Writing adjoint fields from : ',TRIM(cl_adjtrj)
-               WRITE(numout,*)
-            ENDIF
+            IF (ln_tam_out_rhd) THEN
+               CALL iom_rstput( it, it, inum, 'rhd_tl' , rhd_tl)
+            END IF
 
-            CALL iom_open( cl_adjtrj, inum, ldwrt = .TRUE., kiolib = jprstlib)
+            IF (ln_tam_out_rhop) THEN
+               CALL iom_rstput( it, it, inum, 'rhop_tl' , rhop_tl)
+            END IF
+!!! /20200617A
 
-            ! Output trajectory fields
-            CALL iom_rstput( it, it, inum, 'un_ad'   , un_ad   )
-            CALL iom_rstput( it, it, inum, 'vn_ad'   , vn_ad   )
-            CALL iom_rstput( it, it, inum, 'un'   , un   )
-            CALL iom_rstput( it, it, inum, 'vn'   , vn   )
-            CALL iom_rstput( it, it, inum, 'tn_ad'   , tsn_ad(:,:,:,jp_tem)   )
-            CALL iom_rstput( it, it, inum, 'sn_ad'   , tsn_ad(:,:,:,jp_sal)   )
-            CALL iom_rstput( it, it, inum, 'wn_ad'   , wn_ad   )
-            CALL iom_rstput( it, it, inum, 'hdivn_ad', hdivn_ad)
-            CALL iom_rstput( it, it, inum, 'rotn_ad' , rotn_ad )
-            CALL iom_rstput( it, it, inum, 'rhd_ad' , rhd_ad )
-            CALL iom_rstput( it, it, inum, 'rhop_ad' , rhop_ad )
-            CALL iom_rstput( it, it, inum, 'sshn_ad' , sshn_ad )
+            !CALL iom_rstput( it, it, inum, 'tn_tl'   , tsn_tl(:,:,:,jp_tem)   )
+            !CALL iom_rstput( it, it, inum, 'sn_tl'   , tsn_tl(:,:,:,jp_sal)   )
+            !CALL iom_rstput( it, it, inum, 'un_tl'   , un_tl   )               
+            !CALL iom_rstput( it, it, inum, 'vn_tl'   , vn_tl   )
+            !CALL iom_rstput( it, it, inum, 'wn_tl'   , wn_tl   )
+            !CALL iom_rstput(it, it, inum, 'sshn_tl',  sshn_tl)
+            !CALL iom_rstput( it, it, inum, 'hdivn_tl', hdivn_tl)
+            !CALL iom_rstput( it, it, inum, 'rotn_tl' , rotn_tl )
+            !CALL iom_rstput( it, it, inum, 'rhd_tl' , rhd_tl )
+            !CALL iom_rstput( it, it, inum, 'rhop_tl' , rhop_tl )
 
-            CALL iom_close( inum )
+!!! 20191004H - switch to allow adjoint output
+            ELSE
 
-         ENDIF
+!!! 20200617A - Adding variable switches for TAM output
+!!! 20191004B combine variables into a single output             
+            IF (ln_tam_out_t) THEN
+               zicapprox3d(:,:,:) = tsn_ad(:,:,:,jp_tem) + tsb_ad(:,:,:,jp_tem)
+               CALL lbc_lnk(zicapprox3d(:,:,:), 'T', 1.0_wp)
+               CALL iom_rstput( it, it, inum, 't_ad'    , zicapprox3d)
+            END IF
 
-   END SUBROUTINE ad_trj_wri
+            IF (ln_tam_out_s) THEN
+               zicapprox3d(:,:,:) = tsn_ad(:,:,:,jp_sal) + tsb_ad(:,:,:,jp_sal)
+               CALL lbc_lnk(zicapprox3d(:,:,:), 'T', 1.0_wp)
+               CALL iom_rstput( it, it, inum, 's_ad'    , zicapprox3d)
+            END IF
+
+            IF (ln_tam_out_u) THEN
+               zicapprox3d(:,:,:) = un_ad(:,:,:) + ub_ad(:,:,:)
+               CALL lbc_lnk(zicapprox3d(:,:,:), 'U', -1.0_wp)
+               CALL iom_rstput( it, it, inum, 'u_ad'    , zicapprox3d)
+            END IF
+
+            IF (ln_tam_out_v) THEN
+               zicapprox3d(:,:,:) = vn_ad(:,:,:) + vb_ad(:,:,:)
+               CALL lbc_lnk(zicapprox3d(:,:,:), 'V', -1.0_wp)
+               CALL iom_rstput( it, it, inum, 'v_ad'    , zicapprox3d)
+            END IF
+
+            IF (ln_tam_out_ssh) THEN
+               zicapprox2d(:,:) = sshn_ad(:,:) + sshb_ad(:,:)
+               CALL lbc_lnk_adj(zicapprox2d(:,:), 'T', 1.0_wp)
+               CALL iom_rstput( it, it, inum, 'ssh_ad' , zicapprox2d )
+            END IF
+
+            IF (ln_tam_out_hdiv) THEN
+               zicapprox3d(:,:,:) = hdivn_ad(:,:,:) + hdivb_ad(:,:,:)
+               CALL lbc_lnk_adj(zicapprox3d(:,:,:), 'T', 1.0_wp)
+               CALL iom_rstput( it, it, inum, 'hdiv_ad' , zicapprox3d )
+            END IF
+
+            IF (ln_tam_out_rot) THEN
+               zicapprox3d(:,:,:) = rotn_ad(:,:,:) + rotb_ad(:,:,:)
+               CALL lbc_lnk_adj(zicapprox3d(:,:,:), 'F', 1.0_wp)
+               CALL iom_rstput( it, it, inum, 'rot_ad' , zicapprox3d )
+            END IF
+!!! /20191004B
+
+            IF (ln_tam_out_w) THEN
+               CALL iom_rstput( it, it, inum, 'wn_ad'   , wn_ad   )
+            END IF
+
+            IF (ln_tam_out_rhd) THEN
+               CALL iom_rstput( it, it, inum, 'rhd_ad' , rhd_ad)
+            END IF
+
+            IF (ln_tam_out_rhop) THEN
+               CALL iom_rstput( it, it, inum, 'rhop_ad' , rhop_ad)
+            END IF
+!!! /20200617A
+
+            !CALL iom_rstput( it, it, inum, 'tn_ad'   , tsn_ad(:,:,:,jp_tem)   )
+            !CALL iom_rstput( it, it, inum, 'sn_ad'   , tsn_ad(:,:,:,jp_sal)   )
+            !CALL iom_rstput( it, it, inum, 'un_ad'   , un_ad   )               
+            !CALL iom_rstput( it, it, inum, 'vn_ad'   , vn_ad   )
+            !CALL iom_rstput( it, it, inum, 'wn_ad'   , wn_ad   )
+            !CALL iom_rstput(it, it, inum, 'sshn_ad',  sshn_ad)
+            !CALL iom_rstput( it, it, inum, 'hdivn_ad', hdivn_ad)
+            !CALL iom_rstput( it, it, inum, 'rotn_ad' , rotn_ad )
+            !CALL iom_rstput( it, it, inum, 'rhd_ad' , rhd_ad )
+            !CALL iom_rstput( it, it, inum, 'rhop_ad' , rhop_ad )
+!!! /20191004H
+            
+         END IF
+
+         CALL iom_close( inum )
+!!! 20191004B Combining multiple variables into a single output variable
+         CALL wrk_dealloc(jpi, jpj, jpk, zicapprox3d)
+         CALL wrk_dealloc(jpi, jpj     , zicapprox2d)
+!!! /20191004B
+      ENDIF
+        
+    END SUBROUTINE tl_trj_wri
 
 
    SUBROUTINE trj_deallocate
@@ -1049,13 +1274,12 @@ CONTAINS
                & bfruar2,&
                & bfrvar2 &
                & )
-!!!2017-05-04 added 'sshn' to trajectory
+
             DEALLOCATE(    &
                & unr1,     &
                & vnr1,     &
                & tnr1,     &
                & snr1,     &
-               & sshnr1,   &!
                & avmur1,   &
                & avmvr1,   &
                & avtr1,    &
@@ -1064,11 +1288,14 @@ CONTAINS
                & vnr2,     &
                & tnr2,     &
                & snr2,     &
-               & sshnr2,   &!
                & avmur2,   &
                & avmvr2,   &
                & avtr2,    &
-               & etot3r2   &
+               & etot3r2,  &
+!!! 20191004C adding ssh to nonlinear trajectory
+               & sshnr1,   & 
+               & sshnr2    &
+!!! /20191004C
                & )
 
 #if defined key_traldf_eiv
@@ -1112,7 +1339,6 @@ CONTAINS
                & hmlp2     &
                & )
 #endif
-            ln_mem = .FALSE.
 	 ENDIF
          END SUBROUTINE trj_deallocate
 #endif

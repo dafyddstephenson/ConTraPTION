@@ -1,3 +1,4 @@
+!
 MODULE traadv_tam
 #if defined key_tam
    !!==============================================================================
@@ -24,7 +25,9 @@ MODULE traadv_tam
    USE ldftra_oce
    USE dom_oce         ! ocean space and time domain
    USE traadv_cen2_tam
-   USE traadv_tvd ! 2016-11-29 added TVD advection scheme as an option for passive tracer transport 
+!!! 20191004U use of nonlinear TVD scheme in TAM
+   USE traadv_tvd 
+!!! /20191004U
    USE in_out_manager  ! I/O manager
    USE prtctl          ! Print control
    USE cla_tam
@@ -32,11 +35,12 @@ MODULE traadv_tam
    USE lib_mpp
    USE wrk_nemo
    USE timing
+!!! 20191004S,  20191004T, 20191004U - namelist parameters for advection schemes
    USE tamctl
-!!! 20191223 (20191004W) - addition of EIV to trajectory fields
+!!! /20191004S, /20191004T, /20191004U
+!!! 20191004W - addition of EIV to trajectory fields
    USE traadv_eiv
-!!! /20191223
-
+!!! /20191004W
 
    IMPLICIT NONE
    PRIVATE
@@ -47,19 +51,22 @@ MODULE traadv_tam
    PUBLIC   tra_adv_adj_tst ! routine called by tst module
 
    !!* Namelist nam_traadv
-
-   !20191223 - (20191004W) adding EIV to velocity fields
-   LOGICAL :: ln_tl_eiv
-   !/20191223
-
    LOGICAL, PUBLIC ::   ln_traadv_cen2   = .TRUE.       ! 2nd order centered scheme flag
    LOGICAL, PUBLIC ::   ln_traadv_tvd    = .FALSE.      ! TVD scheme flag
 
+!!!20191004S remove references to incompatible advection schemes
+   !LOGICAL, PUBLIC ::   ln_traadv_muscl  = .FALSE.      ! MUSCL scheme flag
+   !LOGICAL, PUBLIC ::   ln_traadv_muscl2 = .FALSE.      ! MUSCL2 scheme flag
+   !LOGICAL, PUBLIC ::   ln_traadv_ubs    = .FALSE.      ! UBS scheme flag
+   !LOGICAL, PUBLIC ::   ln_traadv_qck    = .FALSE.      ! QUICKEST scheme flag
+!!!/20191004S
+
+!!!20191004S, 20191004T - add weighted-mean and trajectory-upstream schemes
    REAL,    PUBLIC :: rn_traadv_weight_h = 0._wp
    REAL,    PUBLIC :: rn_traadv_weight_v = 0._wp
+!!! 20191004S, 20191004T
 
    INTEGER ::   nadv   ! choice of the type of advection scheme
-   
 
    !! * Substitutions
 #  include "domzgr_substitute.h90"
@@ -81,10 +88,8 @@ CONTAINS
       !!
       INTEGER, INTENT( in ) ::   kt   ! ocean time-step index
       INTEGER               ::   jk   ! dummy loop index
-
       !!----------------------------------------------------------------------
       !
-
       IF( nn_timing == 1 )  CALL timing_start('tra_adv_tan')
       !
       CALL wrk_alloc( jpi, jpj, jpk, zun, zvn, zwn )
@@ -114,21 +119,19 @@ CONTAINS
       zvntl(:,:,jpk) = 0._wp                                                     ! no transport trough the bottom
       zwntl(:,:,jpk) = 0._wp                                                     ! no transport trough the bottom
       !
-
-!!! 20191223 (20191004W) - addition of EIV to trajectory velocity      
+!!! 20191004W - addition of EIV to trajectory velocity      
       IF (ln_tl_eiv) THEN
       ! next two lines are a copy of the corresponding call from file OPA_SRC/TRA/traadv.F90 (lines 96 and 97)
       IF( lk_traldf_eiv .AND. .NOT. ln_traldf_grif )   &
          &              CALL tra_adv_eiv( kt, nit000, zun, zvn, zwn, 'TRA' )
       END IF 
 !!! /20191004W
-
-
-
+      !
       IF ( kt == nit000 ) THEN
-         ! 2016-11-29 added TVD advection scheme as an option for passive tracer transport 
+!!!20191004U - add TVD advection scheme to TAM
          IF (ln_traadv_tvd) THEN
-            if (lwp) write(numout,*) 'TVD advection scheme in use for passive tracer transport: CAUTION - NONLINEAR ADVECTION SCHEME'
+            if (lwp) write(numout,*) 'TVD advection scheme in use for tracer transport: CAUTION - NONLINEAR ADVECTION SCHEME. Use for PASSIVE TRACER ONLY'
+!!!/20191004U
             nadv = 2
          ELSE
             IF(lwp) WRITE(numout,*) ' tra_adv_tam: 2nd order scheme is forced in TAM'
@@ -138,10 +141,14 @@ CONTAINS
 
       SELECT CASE ( nadv )                           ! compute advection trend and add it to general trend
       CASE ( 1 ) ;
+!!! 20191004S, 20191004T - addition of weighted-mean and upstream schemes
+         !CALL tra_adv_cen2_tan ( kt, nit000, zun, zvn, zwn, tsn, zuntl, zvntl, zwntl, tsn_tl, tsa_tl, jpts )    ! 2nd order centered scheme
          CALL tra_adv_cen2_tan ( kt, nit000, zun, zvn, zwn, tsn, zuntl, zvntl, zwntl, tsn_tl, tsa_tl, jpts, rn_traadv_weight_h,rn_traadv_weight_v )    ! 2nd order centered scheme
-      ! 2016-11-29 added call to TVD advection scheme of nonlinear model as an option for passive tracer transport 
+!!! /201910004S, /20191004T
+!!! 20191004U - addition of TVD scheme to TAM
       CASE ( 2 );
          CALL tra_adv_tvd      ( kt, nit000, 'TRA', r2dtra, zun, zvn, zwn, tsb_tl, tsn_tl, tsa_tl, jpts )
+!!! /20191004U
       END SELECT
       !
       IF( nn_timing == 1 )  CALL timing_stop('tra_adv_tan')
@@ -189,25 +196,28 @@ CONTAINS
       zvn(:,:,jpk) = 0._wp                                                     ! no transport trough the bottom
       zwn(:,:,jpk) = 0._wp                                                     ! no transport trough the bottom
       !
-
-!!! 20191223 (20191004W) - incorporate EIV into trajectory velocity fields
+!!! 20191004W - incorporate EIV into trajectory velocity fields
       IF (ln_tl_eiv) THEN
       ! the next lines are a copy of the corresponding call from file OPA_SRC/TRA/traadv.F90 (lines 96 and 97)
       IF( lk_traldf_eiv .AND. .NOT. ln_traldf_grif )   &
          &              CALL tra_adv_eiv( kt, nit000, zun, zvn, zwn, 'TRA' )
       END IF
-!!! /20191223
-
-
+!!! /20191004W
+      !
       IF ( kt == nitend ) THEN
          IF(lwp) WRITE(numout,*) ' tra_adv_tam: 2nd order scheme is forced in TAM'
          nadv = 1 ! force tra_adv_cen2 for adjoint
       END IF
       !
       SELECT CASE ( nadv )                           ! compute advection trend and add it to general trend
+!!! 20191004S , 20191004T - addition of weighting parameters for upstream / weighted-mean schemes
+      !CASE ( 1 ) ; CALL tra_adv_cen2_adj ( kt, nit000, zun, zvn, zwn, tsn, zunad, zvnad, zwnad, tsn_ad, tsa_ad, jpts )    ! 2nd order centered scheme
       CASE ( 1 ) ; CALL tra_adv_cen2_adj ( kt, nit000, zun, zvn, zwn, tsn, zunad, zvnad, zwnad, tsn_ad, tsa_ad, jpts, rn_traadv_weight_h,rn_traadv_weight_v )    ! 2nd order centered scheme
-      CASE ( 2 ); !!!2017-08-21 Added TVD advection scheme to adjoint with negative velocity fields 
+!!! /20191004S, /20191004T
+!!! 20191004U - TVD scheme with reverse fields for adjoint passive tracer
+      CASE ( 2 ); 
          CALL tra_adv_tvd      ( kt, nit000, 'TRA', r2dtra,-1*zun,-1*zvn,-1*zwn, tsb_tl, tsn_tl, tsa_tl, jpts )
+!!! /20191004U
       END SELECT
       !
       DO jk = jpkm1, 1, -1
@@ -263,12 +273,16 @@ CONTAINS
       !!              tracer advection schemes and set nadv
       !!----------------------------------------------------------------------
       INTEGER ::   ioptio
-      NAMELIST/namtra_adv_tam/ ln_traadv_cen2 , &
-         & ln_traadv_tvd,    &
-         & ln_tl_eiv,        &
-         &                 rn_traadv_weight_h, rn_traadv_weight_v
 
-      
+      NAMELIST/namtra_adv_tam/ ln_traadv_cen2 , &
+!!! 20191004U introduction of TVD to TAM
+        &                  ln_traadv_tvd,    &
+!!!/ 20191004U
+!!!20191004S, 20191004T - introduction of weighting parameters for upwind and weighted-mean scheme
+         &                 rn_traadv_weight_h, rn_traadv_weight_v 
+         !&                 ln_traadv_muscl, ln_traadv_muscl2, &
+         !&                 ln_traadv_ubs  , ln_traadv_qck
+!!! /20191004S, /20191004T
       !!----------------------------------------------------------------------
 
       REWIND( numnam )               ! Read Namelist nam_traadv : tracer advection scheme
@@ -281,6 +295,11 @@ CONTAINS
          WRITE(numout,*) '       Namelist nam_traadv_tam : chose a advection scheme for tracers'
          WRITE(numout,*) '          2nd order advection scheme     ln_traadv_cen2   = ', ln_traadv_cen2
          WRITE(numout,*) '          TVD advection scheme           ln_traadv_tvd    = ', ln_traadv_tvd
+!!! 20191004T, 20191004S - addition of weighted mean scheme and varying weight upstream scheme
+         !WRITE(numout,*) '          MUSCL  advection scheme        ln_traadv_muscl  = ', ln_traadv_muscl
+         !WRITE(numout,*) '          MUSCL2 advection scheme        ln_traadv_muscl2 = ', ln_traadv_muscl2
+         !WRITE(numout,*) '          UBS    advection scheme        ln_traadv_ubs    = ', ln_traadv_ubs
+         !WRITE(numout,*) '          QUICKEST advection scheme      ln_traadv_qck    = ', ln_traadv_qck
          IF( rn_traadv_weight_h < 0.0_wp) THEN 
             WRITE(numout,*) '         Weighted-mean horizontal advection scheme selected '
          ELSE
@@ -291,12 +310,20 @@ CONTAINS
          ELSE
             WRITE(numout,*) 'weighted centred v. upstream advection scheme, vertical upstream weighting = ', rn_traadv_weight_v*100, '%'
          ENDIF
+!!!/20191004T, /20191004S
 
-      ENDIF
+
+    ENDIF
 
       ioptio = 0                      ! Parameter control
       IF( ln_traadv_cen2   )   ioptio = ioptio + 1
       IF( ln_traadv_tvd    )   ioptio = ioptio + 1
+!!!20191004T - remove references to incompatible schemes
+      !IF( ln_traadv_muscl  )   ioptio = ioptio + 1
+      !IF( ln_traadv_muscl2 )   ioptio = ioptio + 1
+      !IF( ln_traadv_ubs    )   ioptio = ioptio + 1
+      !IF( ln_traadv_qck    )   ioptio = ioptio + 1
+!!! /20191004T
       IF( lk_esopa         )   ioptio =          1
 
       IF( ioptio /= 1 )   CALL ctl_stop( 'Choose ONE advection scheme in namelist nam_traadv' )
@@ -307,12 +334,26 @@ CONTAINS
       !                              ! Set nadv
       IF( ln_traadv_cen2   )   nadv =  1
       IF( ln_traadv_tvd    )   nadv =  2
+!!! 20191004T remove references to incompatible schemes
+      !IF( ln_traadv_muscl  )   nadv =  3
+      !IF( ln_traadv_muscl2 )   nadv =  4
+      !IF( ln_traadv_ubs    )   nadv =  5
+      !IF( ln_traadv_qck    )   nadv =  6
+!!! /20191004T
       IF( lk_esopa         )   nadv = -1
 
       IF(lwp) THEN                   ! Print the choice
          WRITE(numout,*)
          IF( nadv ==  1 )   WRITE(numout,*) '         2nd order scheme is used'
-         IF( nadv ==  2 )   WRITE(numout,*) '         TVD scheme: WARNING non-linear advection scheme selected'
+!!! 20191004U - add TVD to NEMOTAM
+         IF( nadv ==  2 )   WRITE(numout,*) '         TVD       WARNING non-linear advection scheme selected. Should be used for PASSIVE-TRACER TRANSPORT ONLY.'
+!!! /20191004U
+!!! 20191004T remove references to incompatible schemes
+         !IF( nadv ==  3 )   WRITE(numout,*) '         MUSCL     Not Available in NEMO TAM'
+         !IF( nadv ==  4 )   WRITE(numout,*) '         MUSCL2    Not Available in NEMO TAM'
+         !IF( nadv ==  5 )   WRITE(numout,*) '         UBS       Not Available in NEMO TAM'
+         !IF( nadv ==  6 )   WRITE(numout,*) '         QUICKEST  Not Available in NEMO TAM'
+!!! /20191004T
          IF( nadv == -1 )   WRITE(numout,*) '         esopa test: Not Available in NEMO TAM'
       ENDIF
       !

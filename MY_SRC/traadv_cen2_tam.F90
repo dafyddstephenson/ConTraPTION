@@ -1,3 +1,4 @@
+!
 MODULE traadv_cen2_tam
 #if defined key_tam
    !!======================================================================
@@ -38,10 +39,10 @@ MODULE traadv_cen2_tam
    USE lib_mpp
    USE wrk_nemo
    use timing
-! 2016-11-16: making diffusion co-efficients available
+!!! 20191004S: Weighted-mean scheme - make diffusion coefficients available
    USE ldftra_oce
    USE zdf_oce
-! 2016-11-18: making diffusion co-efficients available (vertical)
+!!! /20191004S
 
    IMPLICIT NONE
    PRIVATE
@@ -53,10 +54,10 @@ MODULE traadv_cen2_tam
    !! * Substitutions
 #  include "domzgr_substitute.h90"
 #  include "vectopt_loop_substitute.h90"
-! 2016-11-11: making diffusion coefficients available
+!!! 20191004S: Weighted-mean scheme - make diffusion coefficients available
 #  include "ldftra_substitute.h90"
 #  include "zdfddm_substitute.h90"
-! 2016-11-18: making diffusion coefficients available (vertical)
+!!! /20191004S
 
    !!----------------------------------------------------------------------
    !! NEMO/OPA 3.2 , LOCEAN-IPSL (2009)
@@ -65,9 +66,12 @@ MODULE traadv_cen2_tam
    !!----------------------------------------------------------------------
 
 CONTAINS
-
+!!! 20191004S, 20191004T - addition of weighted-mean and upwind schemes
+   !SUBROUTINE tra_adv_cen2_tan( kt, kit000, pun, pvn, pwn, ptn, &
+    !  &                          pun_tl, pvn_tl, pwn_tl, ptn_tl, pta_tl, kjpt )
    SUBROUTINE tra_adv_cen2_tan( kt, kit000, pun, pvn, pwn, ptn, &
       &                          pun_tl, pvn_tl, pwn_tl, ptn_tl, pta_tl, kjpt, pr_ups_h, pr_ups_v )
+!!! /20191004T, /20191004S
       !!----------------------------------------------------------------------
       !!                  ***  ROUTINE tra_adv_cen2_tan  ***
       !!
@@ -143,47 +147,52 @@ CONTAINS
       REAL(wp), INTENT(in), DIMENSION(jpi,jpj,jpk) ::   pwn      ! ocean velocity w-component
       REAL(wp), INTENT(in), DIMENSION(jpi,jpj,jpk,kjpt) ::   ptn     ! ocean velocity v-component
       REAL(wp), INTENT(inout), DIMENSION(jpi,jpj,jpk,kjpt) ::   ptn_tl, pta_tl     ! ocean velocity w-component
-      ! 2016-05-20 - SAM: added optional trajectory-upstream advection scheme
+      !!
+!!! 20191004T (SAM) added optional trajectory-upstream advection scheme
       REAL(wp), OPTIONAL, INTENT(in) :: pr_ups_h ! lin.-interpolation ratio between fully centred sheme
                                      ! (pr_ups=0) and fully trajectory-upstream scheme (pr_ups=1)
       REAL(wp), OPTIONAL, INTENT(in) :: pr_ups_v ! as above in vertical
-!
+!!! /20191004T
+
+
       INTEGER  ::   ji, jj, jk, jn                       ! dummy loop indices
       REAL(wp) ::   zbtr, zhw, zhwtl,                 &  ! temporary scalars
          &          ze3tr, zfui  , zfuitl  ,          &  !    "         "
          &          zfvj  , zfvjtl, ztra                 !    "         "
 
-      ! 2016-11-22
+!!! 20191004S - sigma (sgm) and theta (tht) parameters for weighted-mean scheme
       REAL(wp) :: zsgmu   , zsgmv , zsgmw                   !    "         "
       REAL(wp), POINTER, DIMENSION(:,:,:) :: zthtu , zthtv , zthtw  !    "         "
       CHARACTER(LEN=32) :: zctheta
       INTEGER :: itheta
-
-      !2016-11-16 added sigma (sgm) and theta (tht) corresponding to parameters in Fiadeiro&Veronis1977
-    
-     ! 2016-05-20 - SAM: added optional trajectory-upstream advection scheme
+!!! /20191004S
+!!! 20191004T SAM: added optional trajectory-upstream advection scheme
       REAL(wp) ::   zr_ups_h, zr_ups_v, zpu, zpv, zpw
+!!! /20191004T
+
       REAL(wp) ::   zice                                 !    -         -
       REAL(wp), POINTER, DIMENSION(:,:)     ::   ztfreez      ! 2D workspace
       REAL(wp), POINTER, DIMENSION(:,:,:) ::   zwztl ! 3D workspace
       REAL(wp), POINTER, DIMENSION(:,:,:) ::   zwxtl, zwytl ! 3D workspace
       !!----------------------------------------------------------------------
       IF( nn_timing == 1 )  CALL timing_start('tra_adv_cen2_tan')
-      ! 2016-05-20 - SAM: added optional trajectory-upstream advection scheme
+      !
+!!! 20191004T - SAM: added optional trajectory-upstream advection scheme
       zr_ups_h = 0.0_wp
       zr_ups_v = 0.0_wp
       IF (PRESENT(pr_ups_h)) zr_ups_h = pr_ups_h
       IF (PRESENT(pr_ups_v)) zr_ups_v = pr_ups_v
-      !
+!!! /20191004T
       CALL wrk_alloc( jpi, jpj, ztfreez )
       CALL wrk_alloc( jpi, jpj, jpk, zwztl, zwxtl, zwytl )
-      
+!!! 20191004S - activate weighted-mean scheme if upstream weighting parameters are negative
       IF (zr_ups_h < 0.0_wp) THEN
          CALL wrk_alloc(jpi, jpj, jpk, zthtu, zthtv) 
       END IF
       IF (zr_ups_v <0.0_wp) THEN
          CALL wrk_alloc(jpi, jpj, jpk,  zthtw)
       END IF
+!!! /20191004S
 
       !
       zwztl = 0._wp ; zwxtl = 0._wp ; zwytl = 0._wp
@@ -195,8 +204,7 @@ CONTAINS
          IF(lwp) WRITE(numout,*)
          !
       ENDIF
-      
-      ! 2016-11-22 Calculate theta parameter for Fiadeiro and Veronis (1977) scheme
+!!! 20191004S - Calculate theta parameter for Fiadeiro and Veronis (1977) scheme
       IF (zr_ups_h < 0.0_wp) THEN
          
          DO jk = 1, jpkm1
@@ -208,55 +216,55 @@ CONTAINS
             END DO
          END DO
       END IF
-
+!!! /20191004S
       !
       ! I. Horizontal advection
       !    ====================
       !
-    DO jn = 1, kjpt 
+      DO jn = 1, kjpt
          DO jk = 1, jpkm1
             !                        ! Second order centered tracer flux at u- and v-points
             DO jj = 1, jpjm1
                DO ji = 1, fs_jpim1   ! vector opt.
-               ! 2016-05-20 - SAM: added optional trajectory-upstream advection scheme
-                  ! 2016-11-15
-
+!!! 20191004T - SAM: added optional trajectory-upstream advection scheme
                   IF (zr_ups_h >= 0.0_wp) THEN
                      zpu = 0.5_wp * (1.0_wp - zr_ups_h + zr_ups_h*(1.0_wp + sign(1.0_wp,pun(ji,jj,jk))))
                      zpv = 0.5_wp * (1.0_wp - zr_ups_h + zr_ups_h*(1.0_wp + sign(1.0_wp,pvn(ji,jj,jk))))
                   ELSE
-                                                         
-                     zsgmu = zthtu(ji,jj,jk) / (1.0_wp + abs(zthtu(ji,jj,jk)))
-                     zsgmv = zthtv(ji,jj,jk) / (1.0_wp + abs(zthtv(ji,jj,jk)))                                  
+!!! /20191004T
+!!! 20191004S - calculate sigma parameter for weighted-mean scheme 
                      ! \sigma = [ coth(\theta) - (1 / \theta) 
-                    
-
-                       zpu = 0.5_wp * (1.0_wp + zsgmu)
-                       zpv = 0.5_wp * (1.0_wp + zsgmv)
-
-                     !2016-11-16: modified scheme so negative value of rn_tl_adv_ups in namelist means value is
-                     !ignored and NEMO reverts to weighted-mean scheme (c.f. Fiadeiro and Veronis, 1977)
-                     !added sgmu,sgmv (sigma) and thtu,thtv (theta) parameters (as in page 6)
-
-                     !2016-11-18: used expansion of coth(x)-1/(x) = x/(1+|x|) for sigma, changed zpu,zpv so full range
-                     !            of sigma (-1,1) is realised. Previous zr_ups only in (0,1) 
-                       
-                     !2017-03-03: NOTE: to force horizontally centred scheme within FV77 conditional, set zsgmu=zsgmv=0
-                       
-                  ENDIF
+                     ! Use expansion coth(x) - 1/x ~= x/(1+|x|)
+                     zsgmu = zthtu(ji,jj,jk) / (1.0_wp + abs(zthtu(ji,jj,jk)))
+                     zsgmv = zthtv(ji,jj,jk) / (1.0_wp + abs(zthtv(ji,jj,jk)))                     
+                     zpu = 0.5_wp * (1.0_wp + zsgmu)
+                     zpv = 0.5_wp * (1.0_wp + zsgmv)
+                  END IF
+!!! /20191004S
                   ! volume fluxes * 1/2
+!!! 20191004T, 20191004S
+                  !zfuitl = 0.5 * pun_tl(ji,jj,jk)
+                  !zfvjtl = 0.5 * pvn_tl(ji,jj,jk)
+                  !zfui   = 0.5 * pun(   ji,jj,jk)
+                  !zfvj   = 0.5 * pvn(   ji,jj,jk)
                   zfuitl = zpu * pun_tl(ji,jj,jk)
                   zfvjtl = zpv * pvn_tl(ji,jj,jk)
                   zfui   = zpu * pun(   ji,jj,jk)
                   zfvj   = zpv * pvn(   ji,jj,jk)
+!!! /20191004T, /20191004S
                   !
                   ! centered scheme
-                  
+!!! 20191004T, 20191004S
+                  !zwxtl(ji,jj,jk) = zfuitl * ( ptn(   ji,jj,jk, jn) + ptn(   ji+1,jj  ,jk, jn) ) &
+                    ! &            + zfui   * ( ptn_tl(ji,jj,jk, jn) + ptn_tl(ji+1,jj  ,jk, jn) )
+                  !zwytl(ji,jj,jk) = zfvjtl * ( ptn(   ji,jj,jk, jn) + ptn(   ji  ,jj+1,jk, jn) ) &
+                    ! &            + zfvj   * ( ptn_tl(ji,jj,jk, jn) + ptn_tl(ji  ,jj+1,jk, jn) )
                   zwxtl(ji,jj,jk) = zfuitl * ptn(   ji,jj,jk, jn) + (pun_tl(ji,jj,jk) - zfuitl) * ptn(   ji+1,jj  ,jk, jn) &
                      &            + zfui   * ptn_tl(ji,jj,jk, jn) + (pun   (ji,jj,jk) - zfui  ) * ptn_tl(ji+1,jj  ,jk, jn)
                   zwytl(ji,jj,jk) = zfvjtl * ptn(   ji,jj,jk, jn) + (pvn_tl(ji,jj,jk) - zfvjtl) * ptn(   ji  ,jj+1,jk, jn) &
                      &            + zfvj   * ptn_tl(ji,jj,jk, jn) + (pvn   (ji,jj,jk) - zfvj  ) * ptn_tl(ji  ,jj+1,jk, jn)
-             END DO
+!!! /20191004T, /20191004S
+               END DO
             END DO
          END DO
 
@@ -276,53 +284,56 @@ CONTAINS
          ENDIF
          !
 
-        ! ##########################################################################
-
-         ! 2016-11-22 Calculate theta parameter for Fiadeiro and Veronis (1977) scheme
+!!!20191004S Calculate theta parameter for weighted-mean scheme
          IF (zr_ups_v < 0.0_wp) THEN
             DO jk = 2, jpk
                DO jj = 2, jpjm1
                   DO ji = fs_2, fs_jpim1
                      IF (jn==1) THEN
-                        zthtw(ji,jj,jk) = ( pwn(ji,jj,jk) /( e1t(ji,jj)*e2t(ji,jj)) ) / ( 2.0_wp * (1e-19_wp+avt(ji,jj,jk)))
+                        zthtw(ji,jj,jk) = ( pwn(ji,jj,jk) /( e1t(ji,jj)*e2t(ji,jj)) ) / ( 2.0_wp * (1e-19_wp+avt(ji,jj,jk))) 
                      ELSE !2016-11-29 applied above change to salinity field
-                        zthtw(ji,jj,jk) = ( pwn(ji,jj,jk) /( e1t(ji,jj)*e2t(ji,jj)) ) / ( 2.0_wp * (1e-19_wp+fsavs(ji,jj,jk)))
+                        zthtw(ji,jj,jk) = ( pwn(ji,jj,jk) /( e1t(ji,jj)*e2t(ji,jj)) ) / ( 2.0_wp * (1e-19_wp+fsavs(ji,jj,jk))) 
                      ENDIF
                   END DO
                END DO
             END DO
 
          END IF
+!!! /20191004S
 
          DO jk = 2, jpk              ! Second order centered tracer flux at w-point
             DO jj = 2, jpjm1
                DO ji = fs_2, fs_jpim1   ! vector opt.
-               ! 2016-05-20 - SAM: added optional trajectory-upstream advection scheme
 
+!!! 20191004T - SAM: added optional trajectory-upstream advection scheme
                   IF (zr_ups_v >= 0.0_wp) THEN                  
                   zpw = 0.5_wp * (1.0_wp-zr_ups_v+zr_ups_v*(1.0_wp+sign(1.0_wp,pwn(ji,jj,jk))))
                   ELSE 
+!!! /20191004T
+!!! 20191004S - vertical sigma parameter for weighted-mean scheme
                   zsgmw = zthtw(ji,jj,jk) / (1.0_wp + abs(zthtw(ji,jj,jk)))
-                  zpw = 0.5_wp * ( 1.0_wp + zsgmw )
-                  
-                  !2016-11-18: repeated above adaptations for vertical advection
-
+                  zpw = 0.5_wp * ( 1.0_wp + zsgmw )                  
                   ENDIF
+!!! /20191004S
+!!! 20191004T, 20191004S - weighted-mean and upwind schemes
 
                   ! velocity * 1/2
+                  !zhwtl = 0.5 * pwn_tl(ji,jj,jk)
                   zhwtl = zpw * pwn_tl(ji,jj,jk)
+                  !zhw   = 0.5 * pwn(   ji,jj,jk)
                   zhw   = zpw * pwn(   ji,jj,jk)
                   ! centered scheme
+                  !zwztl(ji,jj,jk) = zhwtl * ( ptn(   ji,jj,jk,jn) + ptn(   ji,jj,jk-1,jn) ) &
+                  ! &            + zhw   * ( ptn_tl(ji,jj,jk,jn) + ptn_tl(ji,jj,jk-1,jn) )
+
                   zwztl(ji,jj,jk) = zhwtl * ptn(   ji,jj,jk,jn) + (pwn_tl(ji,jj,jk) - zhwtl) * ptn(   ji,jj,jk-1,jn) &
                      &            + zhw   * ptn_tl(ji,jj,jk,jn) + (pwn   (ji,jj,jk) - zhw  ) * ptn_tl(ji,jj,jk-1,jn)
+
+!!! /20191004T, /20191004S
+
                END DO
             END DO
          END DO
-
-
-
-         ! #################################################
-
          !
          DO jk = 1, jpkm1            ! divergence of Tracer flux added to the general trend
             DO jj = 2, jpjm1
@@ -341,22 +352,28 @@ CONTAINS
       !
       CALL wrk_dealloc( jpi, jpj, ztfreez )
       CALL wrk_dealloc( jpi, jpj, jpk, zwztl, zwxtl, zwytl )
+      !
 
- !!! 2016-11-22 
+!!! 20191004S - weighted-mean advection scheme
       IF (zr_ups_h < 0.0_wp) THEN
          CALL wrk_dealloc(jpi, jpj, jpk, zthtu, zthtv) !Perhaps uncomment this
       END IF
       IF (zr_ups_v < 0.0_wp) THEN
          CALL wrk_dealloc(jpi, jpj, jpk, zthtw) !Perhaps uncomment this
       END IF      
-      !
+!!! /20191004S
+
       IF( nn_timing == 1 )  CALL timing_stop('tra_adv_cen2_tan')
       !
       !
    END SUBROUTINE tra_adv_cen2_tan
 
+!!! 20191004S, 20191004T - upwind and weighted-mean schemes
+   !SUBROUTINE tra_adv_cen2_adj( kt, kit000, pun, pvn, pwn, ptn, &
+    !  &                          pun_ad, pvn_ad, pwn_ad, ptn_ad, pta_ad, kjpt )
    SUBROUTINE tra_adv_cen2_adj( kt, kit000, pun, pvn, pwn, ptn, &
       &                          pun_ad, pvn_ad, pwn_ad, ptn_ad, pta_ad, kjpt, pr_ups_h, pr_ups_v )
+!!! /20191004S, /20191004T
       !!----------------------------------------------------------------------
       !!                  ***  ROUTINE tra_adv_cen2_adj  ***
       !!
@@ -421,9 +438,6 @@ CONTAINS
       !!              - save trends in (ztrdt,ztrds) ('key_trdtra')
       !!----------------------------------------------------------------------
       !!
-
-     !! ADJOINT MODIFICATIONS 2017-03-10 : zpw, allocate theta variables, copy theta  loop to start
-
       INTEGER , INTENT(in)                         ::   kt          ! ocean time-step index
       INTEGER , INTENT(in)                         ::   kit000
       INTEGER , INTENT(in)                         ::   kjpt
@@ -435,41 +449,50 @@ CONTAINS
       REAL(wp), INTENT(in), DIMENSION(jpi,jpj,jpk) ::   pwn      ! ocean velocity w-component
       REAL(wp), INTENT(in), DIMENSION(jpi,jpj,jpk,kjpt) ::   ptn
       REAL(wp), INTENT(inout), DIMENSION(jpi,jpj,jpk,kjpt) ::   ptn_ad, pta_ad
-      ! 2016-05-20 - SAM: added optional trajectory-upstream advection scheme
+      !!
+
+!!!20191004T, 20191004S- introduction of upwind and weighted-mean schemes
       REAL(wp), OPTIONAL, INTENT(in) :: pr_ups_h ! lin.-interpolation ratio between fully centred sheme
                                      ! (pr_ups=0) and fully trajectory-upstream scheme (pr_ups=1)
       REAL(wp),OPTIONAL, INTENT(in)  :: pr_ups_v ! as above for vertical advection
-      !!
+!!! /20191004T, /20191004S
+
       INTEGER  ::   ji, jj, jk, jn                       ! dummy loop indices
       REAL(wp) ::   zbtr, zhw, zhwad,                 &  ! temporary scalars
          &          ze3tr, zfui  , zfuiad  ,          &  !    "         "
          &          zfvj , zfvjad                        !    "         "
-      ! 2016-05-20 - SAM: added optional trajectory-upstream advection scheme
+
+!!! 20191004T, 20191004S - introduction of upwind and weigthed-mean schemes
       REAL(wp) ::   zr_ups_h,zr_ups_v, zpu, zpv, zpw
-      ! 2016-11-22
-      REAL(wp) :: zsgmu   , zsgmv , zsgmw                   !    2017-03-24 parameters used in weighted-mean scheme
+!!!/20191004T, /20191004S
+!!! 20191004S  -  parameters used in weighted-mean scheme
+      REAL(wp) :: zsgmu   , zsgmv , zsgmw                   ! 
       REAL(wp), POINTER, DIMENSION(:,:,:) :: zthtu , zthtv , zthtw  ! 2017-03-24
+!!! /20191004S 
 
       REAL(wp), POINTER, DIMENSION(:,:,:) ::   zwzad ! 3D workspace
       REAL(wp), POINTER, DIMENSION(:,:,:) ::   zwxad, zwyad ! 3D workspace
       !!----------------------------------------------------------------------
       !
       IF( nn_timing == 1 )  CALL timing_start('tra_adv_cen2_adj')
-      ! 2016-05-20 - SAM: added optional trajectory-upstream advection scheme
+      !
+!!!20191004S, 20191004T - introduction of weighted mean and upstream schemes
       zr_ups_h = 0.0_wp
       zr_ups_v = 0.0_wp
       IF (PRESENT(pr_ups_h)) zr_ups_h = pr_ups_h
       IF (PRESENT(pr_ups_v)) zr_ups_v = pr_ups_v
-      !
+!!!/20191004S, /20191004T
+
       CALL wrk_alloc( jpi, jpj, jpk, zwzad, zwyad, zwxad )
       !
-      
-      IF (zr_ups_h < 0.0_wp) THEN !!!2017-03-24 adding WM scheme to adjoint
+!!!20191004S - weighted mean scheme if weighting parameters negative
+      IF (zr_ups_h < 0.0_wp) THEN 
          CALL wrk_alloc(jpi, jpj, jpk, zthtu, zthtv) 
       END IF
       IF (zr_ups_v <0.0_wp) THEN
          CALL wrk_alloc(jpi, jpj, jpk,  zthtw)
       END IF
+!!! /20191004S
 
       zhwad = 0.0_wp  ;  zfuiad = 0.0_wp  ;  zfvjad = 0.0_wp
       zwxad(:,:,:) = 0.0_wp ; zwyad(:,:,:) = 0.0_wp ; zwzad(:,:,:) = 0.0_wp
@@ -499,40 +522,53 @@ CONTAINS
             END DO
          END DO
          !
-!2016-11-29 calculate theta parameter for Fiadeiro and Veronis (1977 scheme)
-         IF (zr_ups_v < 0.0_wp) THEN !calculate co-efficients for weighted mean scheme 2017-03-24
+!!! 20191004S - calculate theta parameter for weighted-mean scheme
+         IF (zr_ups_v < 0.0_wp) THEN
             DO jk = 2, jpk
                DO jj = 2, jpjm1
                   DO ji = fs_2, fs_jpim1
                      IF (jn==1) THEN
-                        zthtw(ji,jj,jk) = ( pwn(ji,jj,jk) /( e1t(ji,jj)*e2t(ji,jj)) ) / ( 2.0_wp * (1e-19_wp+avt(ji,jj,jk)))
-                     ELSE !2016-11-29 applied above change to salinity field
-                        zthtw(ji,jj,jk) = ( pwn(ji,jj,jk) /( e1t(ji,jj)*e2t(ji,jj)) ) / ( 2.0_wp * (1e-19_wp+fsavs(ji,jj,jk)))
+                        zthtw(ji,jj,jk) = ( pwn(ji,jj,jk) /( e1t(ji,jj)*e2t(ji,jj)) ) / ( 2.0_wp * (1e-19_wp+avt(ji,jj,jk))) 
+                     ELSE 
+                        zthtw(ji,jj,jk) = ( pwn(ji,jj,jk) /( e1t(ji,jj)*e2t(ji,jj)) ) / ( 2.0_wp * (1e-19_wp+fsavs(ji,jj,jk))) 
                      ENDIF
                   END DO
                END DO
             END DO
          END IF
-
+!!! /20191004S 
          DO jk = jpk, 2, -1              ! Second order centered tracer flux at w-point
             DO jj = jpjm1, 2, -1
                DO ji = fs_jpim1, fs_2, -1   ! vector opt.
-               ! 2016-05-20 - SAM: added optional trajectory-upstream advection scheme
 
+!!! 20191004T - SAM: added optional trajectory-upstream advection scheme
                   IF (zr_ups_v >= 0.0_wp) THEN !upstream-centred advection
                      zpw   = 0.5_wp * (1.0_wp-zr_ups_v+zr_ups_v*(1.0_wp+sign(1.0_wp,pwn(ji,jj,jk))))
-                  ELSE !weighted mean scheme 2017-03-24
+!!! /20191004T
+!!! 20191004S - adding weighted-mean scheme
+                  ELSE 
                      zsgmw = zthtw(ji,jj,jk) / (1.0_wp + abs(zthtw(ji,jj,jk)))
                      zpw = 0.5_wp * ( 1.0_wp + zsgmw )
                   END IF
-                  zhw   = zpw * pwn(   ji,jj,jk)
+!!! /20191004S
 
+!!! 20191004T, 20191004S - weighted-mean and upwind schemes 
+                  !zhw   = 0.5 * pwn(   ji,jj,jk)
+                  zhw   = zpw * pwn(   ji,jj,jk)
                   ! centered scheme
+                  !zhwad = zwzad(ji,jj,jk) * ( ptn(   ji,jj,jk,jn) + ptn(   ji,jj,jk-1,jn) )
                   zhwad = zwzad(ji,jj,jk) * ( zpw * ptn(   ji,jj,jk,jn) + (1.0_wp-zpw) * ptn(   ji,jj,jk-1,jn) )
+!!! /20191004T, /20191004S
                   ptn_ad(ji,jj,jk,jn) = ptn_ad(ji,jj,jk,jn) + zhw * zwzad(ji,jj,jk)
+!!! 20191004T, 20191004S - weighted-mean and upwind schemes 
+                  !ptn_ad(ji,jj,jk-1,jn) = ptn_ad(ji,jj,jk-1,jn) + zhw * zwzad(ji,jj,jk)
                   ptn_ad(ji,jj,jk-1,jn) = ptn_ad(ji,jj,jk-1,jn) + (pwn(ji,jj,jk) - zhw) * zwzad(ji,jj,jk)
+!!! /20191004T, /20191004S
                   zwzad(ji,jj,jk) = 0.0_wp
+!!! 20191004T, 20191004S - weighted-mean and upwind schemes 
+                  !pwn_ad(ji,jj,jk) = pwn_ad(ji,jj,jk) + 0.5 * zhwad
                   pwn_ad(ji,jj,jk) = pwn_ad(ji,jj,jk) + zhwad
+!!! /20191004T, /20191004S
                   zhwad = 0._wp
               END DO
             END DO
@@ -552,8 +588,8 @@ CONTAINS
          ! I. Horizontal advective fluxes
          !    ====================
          !
-
-         IF (zr_ups_h < 0.0_wp) THEN !2017-03-24 co-efficients for weighted mean scheme 
+!!! 20191004S - weighted mean scheme theta parameter
+         IF (zr_ups_h < 0.0_wp) THEN 
             
             DO jk = 1, jpkm1
                DO jj = 1, jpjm1
@@ -565,38 +601,59 @@ CONTAINS
             END DO
          END IF
 
+!!! /20191004S
+
          DO jk = 1, jpkm1
             !                        ! Second order centered tracer flux at u- and v-points
             DO jj = jpjm1, 1, -1
                DO ji = fs_jpim1, 1, -1   ! vector opt.
+
+!!! 20191004T - trajectory-upstream sceheme
                   IF (zr_ups_h>=0.0_wp) THEN 
-               ! 2016-05-20 - SAM: added optional trajectory-upstream advection scheme
                      zpu = 0.5_wp * (1.0_wp-zr_ups_h+zr_ups_h*(1.0_wp+sign(1.0_wp,pun(ji,jj,jk))))
                      zpv = 0.5_wp * (1.0_wp-zr_ups_h+zr_ups_h*(1.0_wp+sign(1.0_wp,pvn(ji,jj,jk))))
+!!! /20191004T
+!!! 20191004S - weighted-mean scheme
                   ! volume fluxes * 1/2
-                  ELSE ! implement weighted-mean scheme (2017-03-24)
-                     zsgmu = zthtu(ji,jj,jk) / (1.0_wp + abs(zthtu(ji,jj,jk)))
-                     zsgmv = zthtv(ji,jj,jk) / (1.0_wp + abs(zthtv(ji,jj,jk)))                                  
+                  ELSE
                      ! \sigma = [ coth(\theta) - (1 / \theta) 
-
-
+                     zsgmu = zthtu(ji,jj,jk) / (1.0_wp + abs(zthtu(ji,jj,jk)))
+                     zsgmv = zthtv(ji,jj,jk) / (1.0_wp + abs(zthtv(ji,jj,jk)))
                      zpu = 0.5_wp * (1.0_wp + zsgmu)
                      zpv = 0.5_wp * (1.0_wp + zsgmv)
                   END IF
+!!! /20191004S
+!!! 20191004T, 20191004 S - weighted-mean and trajectory-upstream schemes
+                  ! volume fluxes * 1/2
+                  !zfui = 0.5 * pun(ji,jj,jk)
+                  !zfvj = 0.5 * pvn(ji,jj,jk)
                   zfui = zpu * pun(ji,jj,jk)
                   zfvj = zpv * pvn(ji,jj,jk)
                   ! centered scheme
+                  !zfvjad = zwyad(ji,jj,jk) * ( ptn(ji,jj,jk,jn) + ptn(ji,jj+1,jk,jn) )
                   zfvjad = zwyad(ji,jj,jk) * ( zpv * ptn(ji,jj,jk,jn) + (1.0_wp-zpv) * ptn(ji,jj+1,jk,jn) )
+                  !zfuiad = zwxad(ji,jj,jk) * ( ptn(ji,jj,jk,jn) + ptn(ji+1,jj,jk,jn) )
                   zfuiad = zwxad(ji,jj,jk) * ( zpu * ptn(ji,jj,jk,jn) + (1.0_wp-zpu) * ptn(ji+1,jj,jk,jn) )
-                  ptn_ad(ji  ,jj  ,jk,jn) = ptn_ad(ji  ,jj  ,jk,jn) + zfvj * zwyad(ji,jj,jk)
+!!! /20191004T, /20191004S
+                  ptn_ad(ji  ,jj  ,jk,jn) = ptn_ad(ji  ,jj  ,jk,jn) + zwyad(ji,jj,jk) * zfvj
+!!! 20191004T, 20191004 S - weighted-mean and trajectory-upstream schemes
+                  !ptn_ad(ji  ,jj+1,jk,jn) = ptn_ad(ji  ,jj+1,jk,jn) + zwyad(ji,jj,jk) * zfvj
                   ptn_ad(ji  ,jj+1,jk,jn) = ptn_ad(ji  ,jj+1,jk,jn) + (pvn(ji,jj,jk) - zfvj) * zwyad(ji,jj,jk)
-                  ptn_ad(ji  ,jj  ,jk,jn) = ptn_ad(ji  ,jj  ,jk,jn) + zfui * zwxad(ji,jj,jk)
+!!! /20191004T, /20191004S
+                  ptn_ad(ji  ,jj  ,jk,jn) = ptn_ad(ji  ,jj  ,jk,jn) + zwxad(ji,jj,jk) * zfui
+!!! 20191004T, 20191004 S - weighted-mean and trajectory-upstream schemes
+                  !ptn_ad(ji+1,jj  ,jk,jn) = ptn_ad(ji+1,jj  ,jk,jn) + zwxad(ji,jj,jk) * zfui
                   ptn_ad(ji+1,jj  ,jk,jn) = ptn_ad(ji+1,jj  ,jk,jn) + (pun(ji,jj,jk) - zfui) * zwxad(ji,jj,jk)
+!!! /20191004T, /20191004S
                   zwyad(ji  ,jj  ,jk) = 0.0_wp
                   zwxad(ji  ,jj  ,jk) = 0.0_wp
+!!! 20191004T, 20191004 S - weighted-mean and trajectory-upstream schemes
                   ! volume fluxes * 1/2
+                  !pun_ad(ji,jj,jk) = pun_ad(ji,jj,jk) + 0.5 * zfuiad
                   pun_ad(ji,jj,jk) = pun_ad(ji,jj,jk) + zfuiad
+                  !pvn_ad(ji,jj,jk) = pvn_ad(ji,jj,jk) + 0.5 * zfvjad
                   pvn_ad(ji,jj,jk) = pvn_ad(ji,jj,jk) + zfvjad
+!!! /20191004T, /20191004S
                   zfuiad = 0._wp
                   zfvjad = 0._wp
                 END DO
@@ -605,14 +662,15 @@ CONTAINS
       END DO
       !
       CALL wrk_dealloc( jpi, jpj, jpk, zwzad, zwyad, zwxad )
+      !
+!!! 20191004T - weighted-mean scheme
       IF (zr_ups_h < 0.0_wp) THEN
          CALL wrk_dealloc(jpi, jpj, jpk, zthtu, zthtv) 
       END IF
       IF (zr_ups_v < 0.0_wp) THEN
          CALL wrk_dealloc(jpi, jpj, jpk, zthtw)
       END IF      
-
-      !
+!!! /20191004T
       IF( nn_timing == 1 )  CALL timing_stop('tra_adv_cen2_adj')
       !
    END SUBROUTINE tra_adv_cen2_adj
@@ -648,7 +706,9 @@ SUBROUTINE tra_adv_cen2_adj_tst( kumadt )
          & ji,    &        ! dummy loop indices
          & jj,    &
          & jk,    &
+!!!20191004S, 20191004T - test all 3 advection configurations        
          & jn
+!!! /20191004S, /20191004T
       INTEGER, DIMENSION(jpi,jpj) :: &
          & iseed_2d        ! 2D seed for the random number generator
       REAL(KIND=wp) :: &
@@ -679,8 +739,9 @@ SUBROUTINE tra_adv_cen2_adj_tst( kumadt )
       ! 1) dx = ( un_tl, vn_tl, hdivn_tl ) and
       !    dy = ( hdivb_tl, hdivn_tl )
       !==================================================================
-
+!!! 20191004S, 20191004T - loop over all schemes for adjoint test
       DO jn = 1, 3
+!!! /20191004S, /20191004T
          !--------------------------------------------------------------------
          ! Reset the tangent and adjoint variables
          !--------------------------------------------------------------------
@@ -773,7 +834,8 @@ SUBROUTINE tra_adv_cen2_adj_tst( kumadt )
          tsn_tl(:,:,:,jp_sal) = zsn_tlin(:,:,:)
          tsa_tl(:,:,:,jp_tem) = zta_tlin(:,:,:)
          tsa_tl(:,:,:,jp_sal) = zsa_tlin(:,:,:)
-
+!!! 20191004S, 20191004T - test all advection configurations
+         !CALL tra_adv_cen2_tan(nit000, nit000, un, vn, wn, tsn, zun_tlin, zvn_tlin, zwn_tlin, tsn_tl, tsa_tl, 2)
          IF (jn == 1) THEN
             CALL tra_adv_cen2_tan(nit000, nit000, un, vn, wn, tsn, zun_tlin, zvn_tlin, zwn_tlin, tsn_tl, tsa_tl, 2, 0.0_wp, 0.0_wp)
          ELSEIF (jn == 2) THEN
@@ -781,6 +843,7 @@ SUBROUTINE tra_adv_cen2_adj_tst( kumadt )
          ELSEIF (jn == 3) THEN
             CALL tra_adv_cen2_tan(nit000, nit000, un, vn, wn, tsn, zun_tlin, zvn_tlin, zwn_tlin, tsn_tl, tsa_tl, 2, -1.0_wp, -1.0_wp)
          END IF
+!!! /20191004S, /20191004T
 
          zta_tlout(:,:,:) = tsa_tl(:,:,:,jp_tem)
          zsa_tlout(:,:,:) = tsa_tl(:,:,:,jp_sal)
@@ -814,6 +877,10 @@ SUBROUTINE tra_adv_cen2_adj_tst( kumadt )
          tsa_ad(:,:,:,jp_tem) = zta_adin(:,:,:)
          tsa_ad(:,:,:,jp_sal) = zsa_adin(:,:,:)
 
+
+!!! 20191004T, 20191004S - test all 3 advection configurations
+         !CALL tra_adv_cen2_adj(nit000, nit000, un, vn, wn, tsn, zun_adout, zvn_adout, zwn_adout, tsn_ad, tsa_ad, 2)
+
          IF (jn == 1) THEN
             CALL tra_adv_cen2_adj(nit000, nit000, un, vn, wn, tsn, zun_adout, zvn_adout, zwn_adout, tsn_ad, tsa_ad, 2, 0.0_wp, 0.0_wp)
          ELSEIF (jn == 2) THEN
@@ -821,6 +888,7 @@ SUBROUTINE tra_adv_cen2_adj_tst( kumadt )
          ELSEIF (jn == 3) THEN
             CALL tra_adv_cen2_adj(nit000, nit000, un, vn, wn, tsn, zun_adout, zvn_adout, zwn_adout, tsn_ad, tsa_ad, 2, -1.0_wp, -1.0_wp)
          END IF
+!!! /20191004T, /20191004S
 
          ztn_adout(:,:,:) = tsn_ad(:,:,:,jp_tem)
          zsn_adout(:,:,:) = tsn_ad(:,:,:,jp_sal)
@@ -836,6 +904,8 @@ SUBROUTINE tra_adv_cen2_adj_tst( kumadt )
               & + DOT_PRODUCT( zsa_tlin, zsa_adout )
 
          ! 14 char:'12345678901234'
+!!! 20191004S, 20191004T - test all 3 advection configurations
+         !cl_name = 'tra_adv_cen2  '
          IF (jn == 1) THEN
             cl_name = 'tra_adv_cen2 c'
          ELSEIF (jn == 2) THEN
@@ -843,8 +913,11 @@ SUBROUTINE tra_adv_cen2_adj_tst( kumadt )
          ELSEIF (jn == 3) THEN
             cl_name = 'tra_adv_cen2 w'
          END IF
+!!! /20191004S, /20191004T
          CALL prntst_adj( cl_name, kumadt, zsp1, zsp2 )
+!!! 20191004S, 20191004T - test all 3 advection configurations
       END DO
+!!! /20191004S, /20191004T
 
       DEALLOCATE(         &
          & zun_tlin ,     zvn_tlin ,     zwn_tlin ,     ztn_tlin ,     zsn_tlin ,     &

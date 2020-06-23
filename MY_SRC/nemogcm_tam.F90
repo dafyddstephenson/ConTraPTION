@@ -1,5 +1,6 @@
+!
 MODULE nemogcm_tam
-#if defined key_tam
+#      if defined key_tam
    !!======================================================================
    !!                       ***  MODULE nemogcm   ***
    !! Ocean system   : NEMO GCM (ocean dynamics, on-line tracers, biochemistry and sea-ice)
@@ -89,15 +90,20 @@ MODULE nemogcm_tam
    USE paresp
    !USE tamtrj
    USE trj_tam
-
-   ! Module for passive tracer and water-mass tracking applications
+!!! 20191004K - proper initialisation of TAM variables
+   USE wrk_nemo ! Memory allocation subroutines
+!!! /20191004
+!!! 20191004P - Addition of passive tracer module
    USE pttam, ONLY: pt_init, pt_finalise, pt_run
-
+!!!/ 20191004P
    IMPLICIT NONE
    PRIVATE
 
    PUBLIC   nemo_gcm_tam    ! called by model.F90
    PUBLIC   nemo_init_tam   ! needed by AGRIF
+
+! 2016-06-20: added adjoint time stepping loop
+#  include "domzgr_substitute.h90"
 
    CHARACTER(lc) ::   cform_aaa="( /, 'AAAAAAAA', / ) "     ! flag for output listing
 
@@ -122,7 +128,29 @@ CONTAINS
       !! References : Madec, Delecluse, Imbard, and Levy, 1997:  internal report, IPSL.
       !!              Madec, 2008, internal report, IPSL.
       !!----------------------------------------------------------------------
+
+!!! 20191004K - proper initialisation of TAM variables
+      USE sbcssr_tam, ONLY: qrp_tl, erp_tl, qrp_ad, erp_ad
+!!! /20191004K
+
+!!! 20191004J - addition of adjoint time-stepping loop
+      USE sbcfwb_tam, ONLY: a_fwb_tl, a_fwb_ad
+      INTEGER :: jk
+!!! /20191004J
+
       INTEGER ::   istp       ! time step index
+
+!!! 20191004L - ability to read perturbation/cost function from netCDF file
+      REAL(KIND=wp), POINTER, DIMENSION(:,:,:) :: ztn_tlin   ! temperature
+      REAL(KIND=wp), POINTER, DIMENSION(:,:,:) :: zsn_tlin   ! salinity
+      REAL(KIND=wp), POINTER, DIMENSION(:,:,:) :: zun_tlin   ! zonal velocity
+      REAL(KIND=wp), POINTER, DIMENSION(:,:,:) :: zvn_tlin   ! meridional velocity
+      REAL(KIND=wp), POINTER, DIMENSION(:,:)   :: zhn_tlin   ! SSH
+      REAL(KIND=wp), POINTER, DIMENSION(:,:,:) :: zrotn_tlin ! horiz. velocity rotation
+      REAL(KIND=wp), POINTER, DIMENSION(:,:,:) :: zdivn_tlin ! horiz. velocity divergence
+      INTEGER:: ncid
+!!! /20191004L
+
       !!----------------------------------------------------------------------
       !                            !-----------------------!
       !                            !==  Initialisations  ==!
@@ -138,25 +166,209 @@ CONTAINS
       !                            !-----------------------!
       !                            !==   time stepping   ==!
       !                            !-----------------------!
-      IF ((ln_swi_opatam >= 200).AND.(ln_swi_opatam <= 249)) THEN
+!!! 20191004P - passive tracer module (if active completely bipasses normal time-stepping)
+      IF ((ln_swi_opatam == 4).OR.(ln_swi_opatam == 5 )) THEN
          CALL pt_init
          CALL pt_run(ln_swi_opatam)
          CALL pt_finalise
+!!! /20191004P
       ELSEIF (ln_swi_opatam == 2) THEN
+!!! 20191004K - proper initialisation of TAM variables
+         CALL     oce_tam_init(1)
+         CALL sbc_oce_tam_init(1)
+         CALL sol_oce_tam_init(1)
+#if defined key_tradmp
+         CALL trc_oce_tam_init(1)
+         strdmp_tl = 0.0_wp
+         ttrdmp_tl = 0.0_wp
+#endif
+         qrp_tl = 0.0_wp
+         erp_tl = 0.0_wp   
+         emp_tl(:,:) = 0.0_wp
+         a_fwb_tl = 0.0_wp      
+!!! 20191004L - ability to read perturbation/cost function from netCDF
+         ! Variable allocation and initialisation
+         CALL wrk_alloc(jpi,jpj,jpk,ztn_tlin) ! T
+         ztn_tlin(:,:,:) = 0.0_wp
+         CALL wrk_alloc(jpi,jpj,jpk,zsn_tlin) ! S
+         zsn_tlin(:,:,:) = 0.0_wp
+         CALL wrk_alloc(jpi,jpj,jpk,zun_tlin) ! U
+         zun_tlin(:,:,:) = 0.0_wp
+         CALL wrk_alloc(jpi,jpj,jpk,zvn_tlin) ! V
+         zvn_tlin(:,:,:) = 0.0_wp
+         CALL wrk_alloc(jpi,jpj    ,zhn_tlin) ! SSH
+         zhn_tlin(:,:)   = 0.0_wp
+         CALL wrk_alloc(jpi,jpj,jpk,zrotn_tlin) ! horizontal velocity rotation
+         zrotn_tlin(:,:,:) = 0.0_wp
+         CALL wrk_alloc(jpi,jpj,jpk,zdivn_tlin) ! horizontal velocity divergence
+         zdivn_tlin(:,:,:) = 0.0_wp
+
+         
+         CALL iom_open(cn_tam_input,ncid,kiolib = jpnf90)
+!!! 20200623A - TAM input switches      
+         IF (ln_tam_in_t)    CALL iom_get(ncid,jpdom_autoglo,"t0_tl",ztn_tlin,0)
+         IF (ln_tam_in_s)    CALL iom_get(ncid,jpdom_autoglo,"s0_tl",zsn_tlin,0)
+         IF (ln_tam_in_u)    CALL iom_get(ncid,jpdom_autoglo,"u0_tl",zun_tlin,0)
+         IF (ln_tam_in_v)    CALL iom_get(ncid,jpdom_autoglo,"v0_tl",zvn_tlin,0) 
+         IF (ln_tam_in_ssh)  CALL iom_get(ncid,jpdom_autoglo,"ssh0_tl",zhn_tlin,0) 
+         IF (ln_tam_in_rot)  CALL iom_get(ncid,jpdom_autoglo,"rot0_tl",zrotn_tlin,0) 
+         IF (ln_tam_in_hdiv) CALL iom_get(ncid,jpdom_autoglo,"hdiv0_tl",zdivn_tlin,0) 
+!/20200623A
+#if defined key_mpp_mpi
+         CALL lbc_lnk(ztn_tlin(:,:,:)  , 'T',  1.0_wp)
+         CALL lbc_lnk(zsn_tlin(:,:,:)  , 'S',  1.0_wp)
+         CALL lbc_lnk(zun_tlin(:,:,:)  , 'U', -1.0_wp) 
+         CALL lbc_lnk(zvn_tlin(:,:,:)  , 'V', -1.0_wp) 
+         CALL lbc_lnk(zhn_tlin(:,:)    , 'T',  1.0_wp)
+         CALL lbc_lnk(zrotn_tlin(:,:,:), 'F',  1.0_wp)
+         CALL lbc_lnk(zdivn_tlin(:,:,:), 'T',  1.0_wp)
+#endif
+!!! /20191004L
+!!! /20191004K
+
+!!!
+         ! Initialisation of TL model
          istp = nit000 - 1
          CALL trj_rea( istp, 1)
          istp = nit000
+!!! 20191004K - proper initialisation of TAM variables 
+         CALL day_tam(nit000, 0)
+         un_tl(:,:,:) = 0.0_wp
+         sshn_tl(:,:) = 0.0_wp
+         tsn_tl(:,:,:,jp_sal) = 0.0_wp
+!!! 20191004L - ability to read TAM input from netCDF
+         tsn_tl(:,:,:,jp_tem) = ztn_tlin(:,:,:)
+         tsn_tl(:,:,:,jp_sal) = zsn_tlin(:,:,:)
+         un_tl(:,:,:)         = zun_tlin(:,:,:)         
+         vn_tl(:,:,:)         = zvn_tlin(:,:,:)         
+         sshn_tl(:,:)         = zhn_tlin(:,:)  
+         rotn_tl(:,:,:)       = zrotn_tlin(:,:,:)         
+         hdivn_tl(:,:,:)       = zdivn_tlin(:,:,:)         
+         CALL iom_close(ncid)
+!!! /20191004L
+!!! /20191004K
+
          CALL istate_init_tan
+
+         ! Time step loop
          DO istp = nit000, nitend, 1
-            CALL stp_tan( istp )
+            CALL stp_tan( istp )            
          END DO
+!!! 20191004L - ability to read TAM input from netCDF
+         ! Variable deallocation
+         CALL wrk_dealloc(jpi, jpj, jpk, ztn_tlin)
+         CALL wrk_dealloc(jpi, jpj, jpk, zsn_tlin)
+         CALL wrk_dealloc(jpi, jpj, jpk, zun_tlin)
+         CALL wrk_dealloc(jpi, jpj, jpk, zvn_tlin)
+         CALL wrk_dealloc(jpi, jpj,      zhn_tlin)
+         CALL wrk_dealloc(jpi, jpj, jpk, zrotn_tlin)
+         CALL wrk_dealloc(jpi, jpj, jpk, zdivn_tlin)
+!!! /20191004L
          IF (lwp) THEN
             WRITE(numout,*)
-            WRITE(numout,*) ' tamtst: Finished testing operators'
-            WRITE(numout,*) ' ------'
+            WRITE(numout,*) ' Tangent-linear run complete'
+            WRITE(numout,*) ' ---------------------'
             WRITE(numout,*)
          ENDIF
-      CALL flush(numout)
+         CALL flush(numout)
+
+!!! 20191004J - addition of adjoint time-stepping loop
+      ELSEIF (ln_swi_opatam == 3) THEN
+
+         CALL trj_rea(nit000-1, 1)
+         !!! 20191004K - proper initialisation of TAM variables
+         DO istp = nit000, nitend
+            CALL day_tam(istp, 0)
+         END DO
+         !!! /20191004K
+         CALL trj_rea(istp-1, -1)
+         
+         !!! 20191004K - proper initialisation of TAM variables
+         call oce_tam_init(2)
+         call sbc_oce_tam_init(2)
+         call sol_oce_tam_init(2)
+         call trc_oce_tam_init(2)
+#if defined key_tradmp
+         strdmp_ad       = 0.0_wp
+         ttrdmp_ad       = 0.0_wp
+#endif
+         qrp_ad          = 0.0_wp
+         erp_ad          = 0.0_wp
+         emp_ad(:,:)     = 0.0_wp
+         a_fwb_ad        = 0.0_wp
+
+         !!! 20191004L - ability to read cost function from nc file
+         CALL wrk_alloc(jpi,jpj,jpk,ztn_tlin) ! T
+         ztn_tlin(:,:,:) = 0.0_wp
+         CALL wrk_alloc(jpi,jpj,jpk,zsn_tlin) ! S
+         zsn_tlin(:,:,:) = 0.0_wp
+         CALL wrk_alloc(jpi,jpj,jpk,zun_tlin) ! U
+         zun_tlin(:,:,:) = 0.0_wp
+         CALL wrk_alloc(jpi,jpj,jpk,zvn_tlin) ! V
+         zvn_tlin(:,:,:) = 0.0_wp
+         CALL wrk_alloc(jpi,jpj    ,zhn_tlin) ! SSH
+         zhn_tlin(:,:)   = 0.0_wp
+         CALL wrk_alloc(jpi,jpj,jpk,zrotn_tlin) ! horizontal velocity rotation
+         zrotn_tlin(:,:,:) = 0.0_wp
+         CALL wrk_alloc(jpi,jpj,jpk,zdivn_tlin) ! horizontal velocity divergence
+         zdivn_tlin(:,:,:) = 0.0_wp
+
+         CALL iom_open(cn_tam_input,ncid,kiolib = jpnf90)
+         IF (ln_tam_in_t)    CALL iom_get(ncid,jpdom_autoglo,"t0_ad",ztn_tlin,0)
+         IF (ln_tam_in_s)    CALL iom_get(ncid,jpdom_autoglo,"s0_ad",zsn_tlin,0)
+         IF (ln_tam_in_u)    CALL iom_get(ncid,jpdom_autoglo,"u0_ad",zun_tlin,0)
+         IF (ln_tam_in_v)    CALL iom_get(ncid,jpdom_autoglo,"v0_ad",zvn_tlin,0) 
+         IF (ln_tam_in_ssh)  CALL iom_get(ncid,jpdom_autoglo,"ssh0_ad",zhn_tlin,0) 
+         IF (ln_tam_in_rot)  CALL iom_get(ncid,jpdom_autoglo,"rot0_ad",zrotn_tlin,0) 
+         IF (ln_tam_in_hdiv) CALL iom_get(ncid,jpdom_autoglo,"hdiv0_ad",zdivn_tlin,0) 
+
+
+
+#if defined key_mpp_mpi
+         CALL lbc_lnk(ztn_tlin(:,:,:)  , 'T',  1.0_wp)
+         CALL lbc_lnk(zsn_tlin(:,:,:)  , 'S',  1.0_wp)
+         CALL lbc_lnk(zun_tlin(:,:,:)  , 'U', -1.0_wp) 
+         CALL lbc_lnk(zvn_tlin(:,:,:)  , 'V', -1.0_wp) 
+         CALL lbc_lnk(zhn_tlin(:,:)    , 'T',  1.0_wp)
+         CALL lbc_lnk(zrotn_tlin(:,:,:), 'F',  1.0_wp)
+         CALL lbc_lnk(zdivn_tlin(:,:,:), 'T',  1.0_wp)
+#endif
+         !!! /20191004L - application of cost function from file
+
+         tsn_ad(:,:,:,:) = 0.0_wp
+
+         un_ad(:,:,:)    = 0.0_wp
+         vn_ad(:,:,:)    = 0.0_wp
+         sshn_ad(:,:)    = 0.0_wp
+
+         tsb_ad(:,:,:,:) = 0.0_wp
+         ub_ad(:,:,:)    = 0.0_wp
+         vb_ad(:,:,:)    = 0.0_wp
+         sshb_ad(:,:)    = 0.0_wp
+!!! 20191004L - ability to read TAM input from netCDF
+         tsn_ad(:,:,:,jp_tem) = tsn_ad(:,:,:,jp_tem) + ( (tmsk_i(:,:,:))*ztn_tlin(:,:,:) )
+         tsn_ad(:,:,:,jp_sal) = tsn_ad(:,:,:,jp_sal) + ( (tmsk_i(:,:,:))*zsn_tlin(:,:,:) )
+         vn_ad(:,:,:)         = un_ad(:,:,:)         + ( (umsk_i(:,:,:))*zun_tlin(:,:,:) )
+         vn_ad(:,:,:)         = vn_ad(:,:,:)         + ( (vmsk_i(:,:,:))*zvn_tlin(:,:,:) )
+         sshn_ad(:,:)         = sshn_ad(:,:)         + ( (tmsk_i(:,:,0))*zhn_tlin(:,:) )
+         hdivn_ad(:,:,:)      = hdivn_ad(:,:,:)      + ( (tmsk_i(:,:,:))*zdivn_tlin(:,:,:) )
+         rotn_ad(:,:,:)       = rotn_ad(:,:,:)       + ( (fmsk_i(:,:,:))*zrotn_tlin(:,:,:) )
+         CALL iom_close(ncid)
+!!! /20191004L
+
+        !!! /20191004L
+         !!! /20191004K
+         DO istp = nitend, nit000, -1
+
+            CALL stp_adj(istp)
+            
+         END DO
+
+         CALL istate_init_adj
+         !!! 20191004H switch to allow adjoint output writing
+         CALL tl_trj_wri(nit000-1, 1)
+         !!! /20191004H
+!!! /20191004J
       ELSE
          CALL tam_tst
       ENDIF
