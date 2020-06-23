@@ -1,5 +1,6 @@
-# PT\_TAM\_ORCA2
+# ConTraPTION: Configuration for Tracking Passive Tracers Injected into the Ocean with NEMOTAM
 ## Overview
+**2020-06-23: README UPDATE DUE**
 This is a NEMO *configuration* which can be used to track passive tracers in NEMO ORCA2 with NEMOTAM.  
 
 NEMOTAM is a tangent-linear and adjoint model (TAM) counterpart to the nonlinear NEMO primitive equation solving ocean circulation model (c.f. *Vidard et al.*, 2011). As such, it details the evolution of small perturbations to a known background state (the "trajectory") obtained by running the nonlinear model (tangent-linear mode). In adjoint mode, "cost functions" of the ocean state are run backwards along the trajectory to determine their sensitivity to earlier perturbations.
