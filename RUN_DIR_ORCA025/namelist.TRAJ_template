@@ -770,9 +770,9 @@ sn_rcv_co2    =       'coupled'              ,    'no'    ,     ''      ,       
                            !  buffer blocking send or immediate non-blocking sends, resp.
    nn_buffer   =   0       !  size in bytes of exported buffer ('B' case), 0 no exportation
    ln_nnogather=  .true.   !  activate code to avoid mpi_allgather use at the northfold !2018-08-12 .true. for NL
-   jpni        = 40       !  jpni   number of processors following i (set automatically if < 1)
-   jpnj        = 4       !  jpnj   number of processors following j (set automatically if < 1)
-   jpnij       = 160       !  jpnij  number of local domains (set automatically if < 1)
+   jpni        = 0       !  jpni   number of processors following i (set automatically if < 1)
+   jpnj        = 0       !  jpnj   number of processors following j (set automatically if < 1)
+   jpnij       = NUMBER_OF_PROCESSORS       !  jpnij  number of local domains (set automatically if < 1)
 /
 !-----------------------------------------------------------------------
 &namctl        !   Control prints & Benchmark
