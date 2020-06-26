@@ -989,7 +989,7 @@ sn_rcv_co2    =       'coupled'              ,    'no'    ,     ''      ,       
 !-----------------------------------------------------------------------
     cn_dirtrj   = 'TRAJ/tam_025_trajectory'   ! prefix for input/ouput files
     ln_trjhand  = .true.            ! Handling non linear trajectory
-    nn_ittrjfrq = 12                ! Output/input frequency
+    nn_ittrjfrq = 24                ! Output/input frequency
     ln_trj_spl = .true.             ! Handling trajectory at simple precision
 /
 !-----------------------------------------------------------------------
