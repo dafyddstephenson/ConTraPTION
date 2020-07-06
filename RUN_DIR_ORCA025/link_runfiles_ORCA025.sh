@@ -42,7 +42,7 @@ else
     ln -s ${ORCA025INPUT_dir}/SWDN_MOD_15JUNE2009.nc . #
     ln -s ${ORCA025INPUT_dir}/TPRECIP_15JUNE2009.nc . #
     ln -s ${ORCA025INPUT_dir}/T_10_MOD_15JUNE2009.nc . #
-    ln -s ${ORCA025INPUT_dir}/U_10_MOD_15JUNE2009 . #
+    ln -s ${ORCA025INPUT_dir}/U_10_MOD_15JUNE2009.nc . #
     ln -s ${ORCA025INPUT_dir}/V_10_MOD_15JUNE2009.nc . #
     
     ################################################################################

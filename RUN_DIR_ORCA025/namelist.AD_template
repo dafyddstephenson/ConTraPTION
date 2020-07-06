@@ -988,7 +988,8 @@ sn_rcv_co2    =       'coupled'              ,    'no'    ,     ''      ,       
 !-----------------------------------------------------------------------
     cn_dirtrj   = 'TRAJ/tam_025_trajectory'   ! prefix for input/ouput files
     ln_trjhand  = .true.            ! Handling non linear trajectory
-    nn_ittrjfrq = 12                 ! Output/input frequency
+    rn_rdttrj   = 900		    ! time step of trajectory (in case different from TAM)
+    nn_ittrjfrq = 24                ! Number of TRAJECTORY timesteps between outputs
     ln_trj_spl = .true.             ! Handling trajectory at simple precision
 /
 !-----------------------------------------------------------------------
@@ -1022,6 +1023,18 @@ sn_rcv_co2    =       'coupled'              ,    'no'    ,     ''      ,       
    ln_tam_out_rot  = .false. ! 2d velocity rotation (f points)
    ln_tam_out_rhd  = .false. ! in situ density anomaly
    ln_tam_out_rhop = .false. ! potential density
+
+   ! Choose TAM input variables (Ignored in passive mode)
+   ln_tam_in_t    = .false. ! temperature
+   ln_tam_in_s    = .false. ! salinity
+   ln_tam_in_u    = .false. ! zonal velocity
+   ln_tam_in_v    = .false. ! meridional velocity
+   ln_tam_in_w    = .false. ! vertical velocity
+   ln_tam_in_ssh  = .false. ! sea surface height
+   ln_tam_in_hdiv = .false. ! 2d velocity divergence (t points)
+   ln_tam_in_rot  = .false. ! 2d velocity rotation (f points)
+   ln_tam_in_rhd  = .false. ! in situ density anomaly
+   ln_tam_in_rhop = .false. ! potential density
 
    ! Choose trajectory output variables (in TAM output)
    ln_trj_out_t    = .false. ! temperature
