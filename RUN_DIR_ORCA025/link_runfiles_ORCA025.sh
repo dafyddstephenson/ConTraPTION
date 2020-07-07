@@ -1,11 +1,11 @@
 #!/bin/bash
 
 
-ORCA025INPUT_dir=/wherever/you/keep/your/ORCA025INPUT/
-BLD_dir=/your_NEMO_3.4_source_code_directory/NEMOGCM/CONFIG/ConTraPTION/BLD
+ORCA025INPUT_dir=/wherever/you/keep/your/ORCA025INPUT
+bin_dir=/your_NEMO_3.4_source_code_directory/NEMOGCM/CONFIG/ConTraPTION/BLD/bin
 
 echo "ORCA025INPUT is located at ${ORCA025INPUT_dir}"
-echo "BLD is located at ${BLD_dir}"
+echo "BLD/bin is located at ${bin_dir}"
 echo "continue? link NEMO files in working directory? (y/n)"
 read linkswitch
 
@@ -47,7 +47,8 @@ else
     
     ################################################################################
     # Executables 
-    ln -s ${BLD_dir}/nemo.exe .
-    ln -s ${BLD_dir}/nemo_tam.exe .
+    ln -s ${bin_dir}/nemo.exe .
+    ln -s ${bin_dir}/nemo_tam.exe .
+    ln -s ${bin_dir}/../../../../TOOLS/REBUILD_NEMO/rebuild_nemo .
 fi
 

@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ORCA2INPUT_dir=/wherever/you/keep/your/ORCA2INPUT
-BLD_dir=/your_NEMO_3.4_source_code_directory/NEMOGCM/CONFIG/TAM_ORCA2/BLD/bin
+bin_dir=/your_NEMO_3.4_source_code_directory/NEMOGCM/CONFIG/TAM_ORCA2/BLD/bin
 
 ################################################################################
 # NOTE: can find ORCA2INPUT files at
@@ -9,7 +9,7 @@ BLD_dir=/your_NEMO_3.4_source_code_directory/NEMOGCM/CONFIG/TAM_ORCA2/BLD/bin
 # Under ORCA2_LIM_v3.4.tar
 
 echo "ORCA2INPUT is located at ${ORCA2INPUT_dir}"
-echo "BLD is located at ${BLD_dir}"
+echo "BLD/bin is located at ${bin_dir}"
 echo "continue? link NEMO files in working directory? (y/n)"
 read linkswitch
 
@@ -44,7 +44,8 @@ else
     ln -s ${ORCA2INPUT_dir}/v_10.15JUNE2009_orca2.nc
     ################################################################################
     #Executables
-    ln -s ${BLD_dir}/nemo.exe .
-    ln -s ${BLD_dir}/nemo_tam.exe .
+    ln -s ${bin_dir}/nemo.exe .
+    ln -s ${bin_dir}/nemo_tam.exe .
+    ln -s ${bin_dir}/../../../../TOOLS/REBUILD_NEMO/rebuild_nemo .
 fi
 
