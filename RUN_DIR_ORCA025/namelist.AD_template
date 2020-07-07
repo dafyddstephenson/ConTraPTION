@@ -1062,7 +1062,7 @@ sn_rcv_co2    =       'coupled'              ,    'no'    ,     ''      ,       
 !-----------------------------------------------------------------------
    ln_traadv_cen2       =  .true.  !  2nd order centered scheme
    ln_traadv_tvd        =  .false.   !  TVD scheme (nonlinear)
-   rn_traadv_weight_h   =  0.       ! horizontal weighting for centred v. upwind
-   rn_traadv_weight_v   =  0.       ! vertical centred v. upw weighting (c:0, u:1)
+   rn_traadv_weight_h   =  -1.       ! horizontal weighting for centred v. upwind
+   rn_traadv_weight_v   =  -1.       ! vertical centred v. upw weighting (c:0, u:1)
                                     !      negative values invoke weighted-mean scheme
 /
