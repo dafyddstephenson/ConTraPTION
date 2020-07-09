@@ -271,7 +271,8 @@ CONTAINS
          !it = ((kstp - nit000 + 1 + nn_ittrjoffset) - MOD(kstp - nit000 + 1, nn_ittrjfrq))
 
 !!! 20200622A - allow different timesteps between NL and TAM
-         it = ( INT( (kstp - nit000 + 1)*(rdt/rn_rdttrj) ) )
+         !it = ( INT( (kstp - nit000 + 1)*(rdt/rn_rdttrj) ) )
+         it = ( INT( (kstp - nit000 + 1)*(rdt/rn_rdttrj) ) + nn_ittrjoffset ) !20200709 trying to re-add trajectory offsetting
 !!!/20200622A
 
 !!!/20191004R
@@ -528,7 +529,10 @@ CONTAINS
 !!! /20191004D
          ELSE
                !itz = nit000 - 1 + nn_ittrjoffset
-            WRITE(cl_dirtrj, FMT='(A,A,I0.8,".nc")' ) TRIM( cn_dirtrj ), '_', (nit000 - 1 + nn_ittrjoffset)
+            !WRITE(cl_dirtrj, FMT='(A,A,I0.8,".nc")' ) TRIM( cn_dirtrj ), '_', (nit000 - 1 + nn_ittrjoffset)
+            !2020-07-08 believe the above commented line could cause failure if regional used with offsetting.
+            !           instead set to always read from tam_trajectory_00000000 outside region
+            WRITE(cl_dirtrj, FMT='(A,A,I0.8,".nc")' ) TRIM( cn_dirtrj ), '_', (nit000 - 1) 
          END IF
 !!!/20191013A
 

@@ -1012,7 +1012,7 @@ sn_rcv_co2    =       'coupled'              ,    'no'    ,     ''      ,       
     nn_ittrjfrq_tan   = 480 ! NEMOTAM output frequency
     cn_tantrj = 'TL_output/tl_output' ! TAM output location & name format
    
-   ! Choose TAM output variables
+   ! Choose TAM output variables (Ignored in passive mode)
    ln_tam_out_t    = .false. ! temperature
    ln_tam_out_s    = .false. ! salinity
    ln_tam_out_u    = .false. ! zonal velocity
