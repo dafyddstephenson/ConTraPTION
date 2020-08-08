@@ -140,7 +140,7 @@ CONTAINS
     ub_tl(:,:,:) = 0.0_wp
     vb_tl(:,:,:) = 0.0_wp
     sshb_tl(:,:) = 0.0_wp
-    tsb_tl(:,:,:,jp_tem) = ztn_tlin(:,:,:)
+    tsb_tl(:,:,:,jp_tem) = 0.0_wp
     tsb_tl(:,:,:,jp_sal) = 0.0_wp
 
     CALL pt_tam_wri(nit000 - 1,0) !write to output file for initial step
