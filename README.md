@@ -5,10 +5,10 @@ This is a NEMO *configuration* which can be used to track passive tracers in NEM
 
 NEMOTAM is a tangent-linear and adjoint model (TAM) counterpart to the nonlinear NEMO primitive equation solving ocean circulation model (c.f. *Vidard et al.*, 2011). As such, it details the evolution of small perturbations to a known background state (the "trajectory") obtained by running the nonlinear model (tangent-linear mode). In adjoint mode, "cost functions" of the ocean state are run backwards along the trajectory to determine their sensitivity to earlier perturbations.
 
-In `PT_TAM_ORCA2`, passive tracer is injected into the model as a "perturbation" (/"cost function") , and tracked forward (/backward) using the tangent-linear (/adjoint) model. At the surface, the tracer can be removed using a restoring mechanism. A record of tracer removal is returned along with a record of tracer distribution as part of NEMOTAM's output.
+In `ConTraPTION`, passive tracer is injected into the model as a "perturbation" (/"cost function") , and tracked forward (/backward) using the tangent-linear (/adjoint) model. At the surface, the tracer can be removed using a restoring mechanism. A record of tracer removal is returned along with a record of tracer distribution as part of NEMOTAM's output.
 
 ## Installation
-### Installing NEMO and PT_TAM configuration
+### Installing NEMO and ConTraPTION
 This repository requires existing NEMO v3.4 (and NEMOTAM) installs. These can be installed using:
 
 `svn co https://forge.ipsl.jussieu.fr/nemo/svn/NEMO/releases/release-3.4`
@@ -19,14 +19,14 @@ For a first-time NEMO install, the user will need to set up their machine's arch
 
 At this point, the PT_TAM configuration can be created. To do this, run the following command in the `CONFIG` directory:
 
-`./makenemo -d "OPATAM_SRC LIM_SRC_2 OPA_SRC" -n PT_TAM -m <ARCHITECTURE> add_key "key_mpp_mpi  key_mpp_rep key_nosignedzero key_tam key_diainstant" del_key "key_zdfddm key_iomput"`
+`./makenemo -d "OPATAM_SRC LIM_SRC_2 OPA_SRC" -n ConTraPTION -m <ARCHITECTURE> add_key "key_mpp_mpi  key_mpp_rep key_nosignedzero key_tam key_diainstant" del_key "key_zdfddm key_iomput"`
 
 This creates a new configuration with ocean (`OPA_SRC`) and sea-ice (`LIM_SRC_2`) dynamics, and TAM (`OPATAM_SRC`, `key_tam`) compatibility. 
 (NOTE: customise line as required, e.g. regarding parallel processing - `key_mpp_mpi` and `key_mpp_rep`. Replace <ARCHITECTURE> with the relevant substring from the arch. filename)
  
-This configuration can now be modified to include passive tracer-related subroutines. To do so, move the contents of `MY_SRC` from this repository into the `NEMOGCM/CONFIG/PT_TAM/MY_SRC` directory and recompile using
+This configuration can now be modified to include passive tracer-related subroutines. To do so, move the contents of `MY_SRC` from this repository into the `NEMOGCM/CONFIG/ConTraPTION/MY_SRC` directory and recompile using
 
-`./makenemo -n PT_TAM`
+`./makenemo -n ConTraPTION`
 
 ### Obtaining and linking forcing and other model input files
 In order to run NEMO-ORCA2, additional files are required, which can be found [here](https://doi.org/10.5281/zenodo.1471702).
@@ -41,7 +41,7 @@ At the same level as `ORCA2_INPUT`, create an experiment directory (e.g. `RUN_DI
 You should now have a NEMO configuration with the following structure
 
 - `/home/username/NEMO/dev_v3_4_STABLE_2012/NEMOGCM/CONFIG/`
-  - `PT_TAM/`
+  - `ConTraPTION/`
     - `BLD/`
     - `MY_SRC/`
     - `WORK/`
