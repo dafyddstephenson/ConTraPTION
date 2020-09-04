@@ -301,7 +301,9 @@ CONTAINS
                 
             ELSE
             !itz = nit000 - 1 + nn_ittrjoffset
-               WRITE(cl_dirtrj, FMT='(A,A,I0.8,".nc")' ) TRIM( cn_dirtrj ), '_', (nit000 -1 + nn_ittrjoffset)
+            !!!20200824: attempt to fix offset+regional bug
+               !WRITE(cl_dirtrj, FMT='(A,A,I0.8,".nc")' ) TRIM( cn_dirtrj ), '_', (nit000 -1 + nn_ittrjoffset)
+               WRITE(cl_dirtrj, FMT='(A,A,I0.8,".nc")' ) TRIM( cn_dirtrj ), '_', (nit000 -1)
             END IF
 !!!/20191013A
             !         WRITE(cl_dirtrj, FMT='(A,".nc")' ) TRIM( c_dirtrj )
@@ -481,13 +483,18 @@ CONTAINS
             
             !WRITE(cl_dirtrj, FMT='(I5.5,A,A,".nc")' ) (it-nn_ittrjfrq), '_', TRIM(cn_dirtrj )
 !!!20191004D expanding I/O to allow up to 100e6 time steps
-            WRITE(cl_dirtrj, FMT='(A,A,I0.8,".nc")' ) TRIM(cn_dirtrj ), '_', (it-nn_ittrjfrq)
+            !WRITE(cl_dirtrj, FMT='(A,A,I0.8,".nc")' ) TRIM(cn_dirtrj ), '_', (it-nn_ittrjfrq + nn_ittrjoffset)
+            !20200824 - not sure why this line was active and the next one commented
 !!!20200622A 
-            !WRITE(cl_dirtrj, FMT='(A,A,I0.8,".nc")' ) TRIM(cn_dirtrj ), '_', (it-nn_ittrjfrq)
+            WRITE(cl_dirtrj, FMT='(A,A,I0.8,".nc")' ) TRIM(cn_dirtrj ), '_', (it-nn_ittrjfrq)
 !/20200622A 
 ! /20191004D            
          ELSE
-            WRITE(cl_dirtrj, FMT='(A,A,I0.8,".nc")' ) TRIM( cn_dirtrj ), '_', (nit000 - 1 + nn_ittrjoffset)
+            !WRITE(cl_dirtrj, FMT='(A,A,I0.8,".nc")' ) TRIM( cn_dirtrj ), '_', (nit000 - 1 + nn_ittrjoffset)
+            !2020-08-24 believe the above commented line could cause failure if regional used with offsetting.
+            !           instead set to always read from tam_trajectory_00000000 outside region
+            WRITE(cl_dirtrj, FMT='(A,A,I0.8,".nc")' ) TRIM( cn_dirtrj ), '_', (nit000 - 1) 
+
          END IF
 !!!/20191013A
 
@@ -1099,49 +1106,33 @@ CONTAINS
 !!! /20191004H
 
 !!! 20200617A - Adding variable switches for TAM output
-!!! 20191004B combine variables into a single output             
             IF (ln_tam_out_t) THEN
-               zicapprox3d(:,:,:) = tsn_tl(:,:,:,jp_tem) + tsb_tl(:,:,:,jp_tem)
-               CALL lbc_lnk(zicapprox3d(:,:,:), 'T', 1.0_wp)
-               CALL iom_rstput( it, it, inum, 't_tl'    , zicapprox3d)
+               CALL iom_rstput( it, it, inum, 't_tl'    , tsn_tl(:,:,:,jp_tem))
             END IF
 
             IF (ln_tam_out_s) THEN
-               zicapprox3d(:,:,:) = tsn_tl(:,:,:,jp_sal) + tsb_tl(:,:,:,jp_sal)
-               CALL lbc_lnk(zicapprox3d(:,:,:), 'T', 1.0_wp)
-               CALL iom_rstput( it, it, inum, 's_tl'    , zicapprox3d)
+               CALL iom_rstput( it, it, inum, 's_tl'    , tsn_tl(:,:,:,jp_sal))
             END IF
 
             IF (ln_tam_out_u) THEN
-               zicapprox3d(:,:,:) = un_tl(:,:,:) + ub_tl(:,:,:)
-               CALL lbc_lnk(zicapprox3d(:,:,:), 'U', -1.0_wp)
-               CALL iom_rstput( it, it, inum, 'u_tl'    , zicapprox3d)
+               CALL iom_rstput( it, it, inum, 'u_tl'    , un_tl(:,:,:))
             END IF
 
             IF (ln_tam_out_v) THEN
-               zicapprox3d(:,:,:) = vn_tl(:,:,:) + vb_tl(:,:,:)
-               CALL lbc_lnk(zicapprox3d(:,:,:), 'V', -1.0_wp)
-               CALL iom_rstput( it, it, inum, 'v_tl'    , zicapprox3d)
+               CALL iom_rstput( it, it, inum, 'v_tl'    , vn_tl(:,:,:))
             END IF
 
             IF (ln_tam_out_ssh) THEN
-               zicapprox2d(:,:) = sshn_tl(:,:) + sshb_tl(:,:)
-               CALL lbc_lnk_adj(zicapprox2d(:,:), 'T', 1.0_wp)
-               CALL iom_rstput( it, it, inum, 'ssh_tl' , zicapprox2d )
+               CALL iom_rstput( it, it, inum, 'ssh_tl' , sshn_tl(:,:))
             END IF
 
             IF (ln_tam_out_hdiv) THEN
-               zicapprox3d(:,:,:) = hdivn_tl(:,:,:) + hdivb_tl(:,:,:)
-               CALL lbc_lnk_adj(zicapprox3d(:,:,:), 'T', 1.0_wp)
-               CALL iom_rstput( it, it, inum, 'hdiv_tl' , zicapprox3d )
+               CALL iom_rstput( it, it, inum, 'hdiv_tl' , hdivn_tl(:,:,:))
             END IF
 
             IF (ln_tam_out_rot) THEN
-               zicapprox3d(:,:,:) = rotn_tl(:,:,:) + rotb_tl(:,:,:)
-               CALL lbc_lnk_adj(zicapprox3d(:,:,:), 'F', 1.0_wp)
-               CALL iom_rstput( it, it, inum, 'rot_tl' , zicapprox3d )
+               CALL iom_rstput( it, it, inum, 'rot_tl' , rotn_tl(:,:,:))
             END IF
-!!! /20191004B
 
             IF (ln_tam_out_w) THEN
                CALL iom_rstput( it, it, inum, 'wn_tl'   , wn_tl   )

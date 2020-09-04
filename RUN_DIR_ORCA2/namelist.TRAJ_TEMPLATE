@@ -25,16 +25,16 @@
 !-----------------------------------------------------------------------
    nn_no       =       0   !  job number (no more used...)
    cn_exp      =  "TRAJ"  !  experience name
-   nn_it000    = FRST_STP ! first time step
-   nn_itend    = LAST_STP ! last time step (std 5475)
-   nn_date0    = STRTDATE ! date at nit_0000 (format yyyymmdd) used if ln_rstart=F or (ln_rstart=T and nn_rstctl=0 or 1)
+   nn_it000    = [FIRST_STEP] ! e.g. 00000001 ; first time step
+   nn_itend    = [LAST_STEP ] ! e.g. 00005475 ; last time step (std 5475)
+   nn_date0    = [START_DATE] ! e.g. 09991225 ; date at nit_0000 (format yyyymmdd) used if ln_rstart=F or (ln_rstart=T and nn_rstctl=0 or 1)
    nn_leapy    =       0   !  Leap year calendar (1) or not (0)
    ln_rstart   = .true.    !  start from rest (F) or from a restart file (T)
    nn_rstctl   =       2   !  restart control => activated only if ln_rstart = T
                            !    = 0 nn_date0 read in namelist ; nn_it000 : read in namelist
                            !    = 1 nn_date0 read in namelist ; nn_it000 : check consistancy between namelist and restart
                            !    = 2 nn_date0 read in restart  ; nn_it000 : check consistancy between namelist and restart
-   cn_ocerst_in  = "TRAJ_RSTRTSTP_restart" !"SPINUP_07938750_restart"   !  suffix of ocean restart name (input)
+   cn_ocerst_in  = "TRAJ_[RESTARTSTEP]_restart" !"e.g. TRAJ_07938750_restart"   !  suffix of ocean restart name (input)
    cn_ocerst_out = "restart"   !  suffix of ocean restart name (output)
    nn_istate   =       0   !  output the initial state (1) or not (0)
    nn_stock    =  273750   !  frequency of creation of a restart file (modulo referenced to 1)
@@ -992,7 +992,7 @@ sn_rcv_co2    =       'coupled'              ,    'no'    ,     ''      ,       
     rn_rdttrj   = 5760		    ! time step of trajectory (in case different from TAM)
     nn_ittrjfrq = 15                 ! Output/input frequency
     ln_trj_spl = .true.             ! Handling trajectory at simple precision
-    nn_ittrjoffset = N_OFFSET
+    nn_ittrjoffset = 0              ! Trajectory "offsetting" (see ConTraPTION README)
 /
 !-----------------------------------------------------------------------
 &namtst_tam ! NEMOTAM driver ('key_tam')

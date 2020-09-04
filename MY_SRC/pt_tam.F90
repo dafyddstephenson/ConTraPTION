@@ -162,7 +162,7 @@ CONTAINS
      !!! 20191013A - kill tracer concentrations outside region of interest
      IF (ln_pt_regional == .TRUE.) THEN
 
-        DO jk=1,jpk !! 20191020                                                                                                                                                                                                               
+        DO jk=1,jpk 
            WHERE( (gphit > rn_NEptlat) .OR. ( gphit < rn_SWptlat) .OR. (glamt < rn_SWptlon) .OR. (glamt > rn_NEptlon)) tsn_tl(:,:,jk,jp_tem) = 0.0_wp
            WHERE( (gphit > rn_NEptlat) .OR. ( gphit < rn_SWptlat) .OR. (glamt < rn_SWptlon) .OR. (glamt > rn_NEptlon)) tsb_tl(:,:,jk,jp_tem) = 0.0_wp
         END DO
@@ -268,7 +268,7 @@ SUBROUTINE pt_adj
 !!! 20191013A - kill tracer concentrations outside region of interest
      IF (ln_pt_regional == .TRUE.) THEN
 
-        DO jk=1,jpk !! 20191020 - rethinking how tracer is removed                                                                                                                                                                             
+        DO jk=1,jpk 
            WHERE( (gphit > rn_NEptlat-1) .OR. ( gphit < rn_SWptlat+1) .OR. (glamt < rn_SWptlon+1) .OR. (glamt > rn_NEptlon-1)) tsn_ad(:,:,jk,jp_tem) = 0.0_wp
            WHERE( (gphit > rn_NEptlat-1) .OR. ( gphit < rn_SWptlat+1) .OR. (glamt < rn_SWptlon+1) .OR. (glamt > rn_NEptlon-1)) tsb_ad(:,:,jk,jp_tem) = 0.0_wp
         END DO
@@ -297,15 +297,14 @@ SUBROUTINE pt_tam_wri( kstp , wri_swi )
   CHARACTER(LEN=132)::zfname
   CALL wrk_alloc(jpi, jpj, jpk, zicapprox3d)
 
-   zicapprox3d(:,:,:) = tsn_tl(:,:,:,jp_tem) + tsb_tl(:,:,:,jp_tem)
-   CALL lbc_lnk(zicapprox3d(:,:,:), 'T', 1.0_wp) ! move lbc_lnk to outside conditional so all nodes are gathered
+  !zicapprox3d(:,:,:) = tsn_tl(:,:,:,jp_tem) + tsb_tl(:,:,:,jp_tem)
+  !CALL lbc_lnk(zicapprox3d(:,:,:), 'T', 1.0_wp) ! move lbc_lnk to outside conditional so all nodes are gathered
 
 IF (wri_swi==0) THEN
    WRITE(zfname, FMT='(A,I0.8,A)') 'PTTAM_output_', kstp, '.nc'
    CALL iom_open(zfname, ncid, ldwrt=.TRUE., kiolib = jprstlib)
-   !! link tsn_tl and tsb_tl into one variable of tangent-linear tracer concentration
 
-   CALL iom_rstput(kstp, kstp, ncid,    'pt_conc_tl', zicapprox3d)
+   CALL iom_rstput(kstp, kstp, ncid,    'pt_conc_tl', tsn_tl(:,:,:,jp_tem))
 
    !! Output ventilation volume
    CALL iom_rstput(kstp, kstp, ncid, 'pt_vent_tl', tmp_rm(:,:))
