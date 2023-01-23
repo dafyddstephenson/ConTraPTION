@@ -1,4 +1,7 @@
 # ConTraPTION: Configuration for Tracking Passive Tracers Injected into the Ocean with NEMOTAM
+
+<p align="center"><img src="https://github.com/2wheelsgood/ConTraPTION/blob/master/preview.gif" alt="Preview animation showing passive transport of North Atlantic Subtropical Mode Water at eddy permitting resolution" width=35% height=35%></p>
+
 ## Overview
 This is a NEMO *configuration* which can be used to track passive tracers in NEMO with NEMOTAM (see *Stephenson et al.*, 2020). 
 
